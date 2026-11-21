@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta
+			name="description"
+			content="A scalable motion toolkit for creating brand-safe animated content."
+		/>
+		<meta name="theme-color" content="#0b0c0d" />
+		<title>Motion Toolkit — Akshansh</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="webtool.css" />
+	</head>
+	<body>
+		<div class="site-shell">
+			<header class="site-header" id="top">
+				<a class="brand" href="#top" aria-label="Akshansh, home">Akshansh</a>
+				<nav class="main-nav" aria-label="Main navigation">
+					<a class="main-nav__link main-nav__link--current" href="#toolkit" aria-current="page">Motion Tool</a>
+					<a class="main-nav__link" href="./Work.html#top">Work</a>
+				</nav>
+				<a
+					class="contact-link"
+					href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=designerwork.akshansh%40gmail.com"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					Let’s talk <span aria-hidden="true">↗</span>
+				</a>
+			</header>
+
+			<main>
+				<section class="intro" aria-labelledby="page-title">
+					<div class="intro__heading">
+						<p class="eyebrow">A scalable system empowers global teams.</p>
+						<h1 id="page-title">Motion Toolkit</h1>
+					</div>
+					<div class="intro__description">
+						<p>
+							As an interactive motion designer, I simplify brand workflows so
+							marketing teams can deliver engaging experiences on a global scale,
+							fast.
+						</p>
+						<a class="try-link" href="#toolkit">
+							<span class="try-link__arrow" aria-hidden="true">↓</span>
+							<span>Try it out</span>
+						</a>
+					</div>
+				</section>
+
+				<section class="toolkit-section" id="toolkit" aria-labelledby="section-title">
+					<p class="section-label" id="section-title">
+						<span>01</span><span aria-hidden="true">/</span> Announcement
+					</p>
+
+					<div class="editor">
+						<div class="editor__preview">
+							<header class="editor-toolbar">
+								<p class="editor-toolbar__label">Live preview</p>
+							</header>
+
+							<div class="preview-stage">
+								<div id="player" aria-label="Cavalry animation preview"></div>
+								<p id="scene-status" class="visually-hidden" role="status" aria-live="polite">
+									Loading Cavalry scene…
+								</p>
+							</div>
+
+							<div class="playback" aria-label="Animation preview controls">
+								<button class="playback__play" type="button" aria-label="Play animation">
+									<span aria-hidden="true">▶</span>
+								</button>
+								<span class="playback__time">00:03</span>
+								<div class="playback__timeline" role="progressbar" aria-label="Animation progress" aria-valuemin="0" aria-valuemax="8" aria-valuenow="3">
+									<span class="playback__progress"></span>
+									<span class="playback__head"></span>
+								</div>
+								<span class="playback__duration">00:08</span>
+								<button class="playback__replay" type="button" aria-label="Replay animation">↻</button>
+							</div>
+						</div>
+
+						<aside class="control-centre" aria-labelledby="control-title">
+							<header class="control-centre__header">
+								<h2 id="control-title">Control Centre</h2>
+							</header>
+							<div class="control-centre__content">
+								<div class="control-intro">
+									<h3>One motion system. Every campaign phase.</h3>
+									<p>
+										For LedgerLoop, a fictional SaaS finance platform, rebuilding every Black Friday campaign phase from scratch slowed production and weakened consistency. A reusable motion system lets marketing adapt each phase without design software—keeping the campaign fast, flexible, and consistent.
+									</p>
+								</div>
+
+								<div class="customise-form">
+									<div id="control-center-controls" class="control-center-controls" aria-live="polite">
+										<div class="field">
+											<label for="speaker-name">Title</label>
+											<input id="speaker-name" name="title" type="text" value="Black Friday Is Live!!" autocomplete="off" />
+										</div>
+
+										<div class="field">
+											<label for="call-to-action">Announcement</label>
+											<textarea id="call-to-action" name="announcement" rows="2">Link in the bio</textarea>
+										</div>
+
+										<div class="field toggle-field">
+											<span id="transition-label">Transition from the end</span>
+											<label class="toggle-switch">
+												<input id="transition-from-end" name="transitionFromEnd" type="checkbox" checked aria-labelledby="transition-label" />
+												<span class="toggle-switch__track" aria-hidden="true"></span>
+											</label>
+										</div>
+
+										<fieldset class="field color-field">
+											<legend>Text Color</legend>
+											<div class="color-presets">
+												<label class="color-preset color-preset--red">
+													<input type="radio" name="text-color-index" value="0" />
+													<span class="visually-hidden">Red #ff0013</span>
+												</label>
+												<label class="color-preset color-preset--black">
+													<input type="radio" name="text-color-index" value="1" />
+													<span class="visually-hidden">Black #000000</span>
+												</label>
+												<label class="color-preset color-preset--white">
+													<input type="radio" name="text-color-index" value="2" checked />
+													<span class="visually-hidden">White #ffffff</span>
+												</label>
+											</div>
+										</fieldset>
+									</div>
+
+									<div class="customise-form__actions">
+										<button class="export-button" id="export-animation" type="button" aria-describedby="export-note">
+											Export animation <span aria-hidden="true">↓</span>
+										</button>
+										<p class="export-note" id="export-note" role="status" aria-live="polite">MP4 · 1080 × 1350</p>
+									</div>
+								</div>
+							</div>
+						</aside>
+					</div>
+				</section>
+
+				<section class="handoff" id="work" aria-label="Toolkit overview">
+					<div class="handoff__item">
+						<span class="handoff__number">01</span>
+						<h2>Motion Identity</h2>
+					</div>
+					<div class="handoff__item">
+						<span class="handoff__number">02</span>
+						<h2>Motion Guidelines</h2>
+					</div>
+					<div class="handoff__item">
+						<span class="handoff__number">03</span>
+						<h2>Motion Toolkit</h2>
+					</div>
+				</section>
+			</main>
+
+			<footer class="site-footer">
+				<div class="site-footer__brand">
+					<p>Motion at Scale</p>
+					<span>Built for beyond the handoff.</span>
+				</div>
+				<a
+					href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=designerwork.akshansh%40gmail.com"
+					target="_blank"
+					rel="noopener noreferrer"
+				>Let’s build your toolkit <span aria-hidden="true">↗</span></a>
+			</footer>
+		</div>
+		<script src="./motion-toolkit.js" type="module"></script>
+	</body>
+</html>
