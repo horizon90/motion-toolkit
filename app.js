@@ -1,4 +1,4 @@
-import { CavalryPlayer } from '../CavalryPlayer.js'
+import { CavalryPlayer } from './CavalryPlayer.js'
 
 async function initialise() {
 	const container = document.getElementById('player')

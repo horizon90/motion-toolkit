@@ -44,7 +44,7 @@ def find_available_port(start_port=8000, max_attempts=10):
     sys.exit(1)
 
 port = find_available_port()
-url = f"http://127.0.0.1:{port}/MotionTools/Webtool.html"
+url = f"http://127.0.0.1:{port}/Webtool.html"
 
 # Create the actual server
 socketserver.TCPServer.allow_reuse_address = True

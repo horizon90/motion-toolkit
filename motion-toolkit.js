@@ -71,7 +71,7 @@ async function initialise() {
 	}
 
 	try {
-		const { CavalryPlayer } = await import('../CavalryPlayer.js')
+		const { CavalryPlayer } = await import('./CavalryPlayer.js')
 		player = new CavalryPlayer(playerMount, {
 			sceneInput: false,
 			controlsContainer,
