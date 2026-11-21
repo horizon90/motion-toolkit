@@ -3,6 +3,7 @@ import http.server
 import socketserver
 import sys
 import webbrowser
+import os
 from pathlib import Path
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -10,6 +11,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=self.root, **kwargs)
+
+    def do_GET(self):
+        from urllib.parse import urlparse
+
+        if urlparse(self.path).path == '/':
+            self.send_response(302)
+            self.send_header('Location', '/Webtool.html')
+            self.end_headers()
+            return
+        return super().do_GET()
     
     def end_headers(self):
         self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
@@ -43,12 +54,16 @@ def find_available_port(start_port=8000, max_attempts=10):
     print(f"Could not find an available port in range {start_port}-{start_port + max_attempts - 1}")
     sys.exit(1)
 
-port = find_available_port()
+port_value = os.environ.get("PORT")
+if port_value:
+    port = int(port_value)
+else:
+    port = find_available_port()
 url = f"http://127.0.0.1:{port}/Webtool.html"
 
 # Create the actual server
 socketserver.TCPServer.allow_reuse_address = True
-httpd = socketserver.TCPServer(("", port), Handler)
+httpd = socketserver.ThreadingTCPServer(("0.0.0.0", port), Handler)
 print(f"Serving Motion Toolkit page at {url}")
 webbrowser.open_new_tab(url)
 

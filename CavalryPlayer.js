@@ -1,9 +1,10 @@
-// Dynamically import the ES6 module
-const wasm = await import('/cavalry-demos/wasm-lib/CavalryWasm.js')
+// Dynamically import the ES6 module relative to this page.
+const wasmUrl = new URL('./wasm-lib/CavalryWasm.js', import.meta.url)
+const wasm = await import(wasmUrl.href)
 // Configure and create the module instance
 const module = await wasm.default({
 	// Tells the module where to find the wasm files
-	locateFile: (path) => `/cavalry-demos/wasm-lib/${path}`,
+	locateFile: (path) => new URL(`./wasm-lib/${path}`, import.meta.url).href,
 	// Set info logging function
 	print: (text) => console.log(text),
 	// Set error logging function
