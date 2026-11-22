@@ -1,0 +1,14 @@
+{
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"rewrites": [
+		{ "source": "/webtool", "destination": "/Webtool.html" },
+		{ "source": "/Webtool", "destination": "/Webtool.html" },
+		{ "source": "/webtool.html", "destination": "/Webtool.html" },
+		{ "source": "/WEBTOOL.html", "destination": "/Webtool.html" },
+		{ "source": "/home", "destination": "/Webtool.html" },
+		{ "source": "/work", "destination": "/Work.html" },
+		{ "source": "/Work", "destination": "/Work.html" },
+		{ "source": "/work.html", "destination": "/Work.html" },
+		{ "source": "/WORK.html", "destination": "/Work.html" }
+	]
+}
