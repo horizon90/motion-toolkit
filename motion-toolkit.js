@@ -6,13 +6,12 @@ async function initialise() {
 	const controlsContainer = document.getElementById('control-center-controls')
 	const sceneStatus = document.getElementById('scene-status')
 	const playButton = document.querySelector('.playback__play')
-	const replayButton = document.querySelector('.playback__replay')
+	const playbackDownloadButton = document.querySelector('.playback__download')
 	const timeline = document.querySelector('.playback__timeline')
 	const progress = document.querySelector('.playback__progress')
 	const playhead = document.querySelector('.playback__head')
 	const currentTime = document.querySelector('.playback__time')
 	const durationTime = document.querySelector('.playback__duration')
-	const exportButton = document.getElementById('export-animation')
 	const exportNote = document.getElementById('export-note')
 
 	if (
@@ -21,13 +20,12 @@ async function initialise() {
 		!controlsContainer ||
 		!sceneStatus ||
 		!playButton ||
-		!replayButton ||
+		!playbackDownloadButton ||
 		!timeline ||
 		!progress ||
 		!playhead ||
 		!currentTime ||
 		!durationTime ||
-		!exportButton ||
 		!exportNote
 	) {
 		throw new Error('The motion toolkit page is missing required UI elements.')
@@ -101,16 +99,6 @@ async function initialise() {
 			if (uiFrameId === null) syncPlaybackUi()
 		})
 
-		replayButton.addEventListener('click', () => {
-			const scene = player.player
-			const wasPlaying = scene.isPlaying()
-			player.stop()
-			scene.setFrame(scene.getStartFrame())
-			player.render()
-			if (wasPlaying) player.play()
-			syncPlaybackUi()
-		})
-
 		timeline.addEventListener('click', (event) => {
 			const bounds = timeline.getBoundingClientRect()
 			const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
@@ -134,14 +122,16 @@ async function initialise() {
 			seekToFrame(Math.max(startFrame, Math.min(endFrame, nextFrame)))
 		})
 
-		exportButton.addEventListener('click', () => {
+		const downloadAnimation = () => {
 			const downloadButton = playerMount.querySelector('#downloadMp4Button')
 			if (!downloadButton || downloadButton.disabled) {
 				exportNote.textContent = 'The animation is not ready to export.'
 				return
 			}
 			downloadButton.click()
-		})
+		}
+
+		playbackDownloadButton.addEventListener('click', downloadAnimation)
 
 		const downloadStatus = playerMount.querySelector('#downloadStatus')
 		if (downloadStatus) {

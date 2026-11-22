@@ -18,25 +18,143 @@
 		<link rel="stylesheet" href="./work.css" />
 	</head>
 	<body class="landing-page">
-		<header class="landing-header" id="top">
-			<a class="landing-brand" href="#top" aria-label="Akshansh, home">Akshansh</a>
-			<nav class="landing-nav" aria-label="Main navigation">
-				<a href="./Webtool.html#top">Motion Tool</a>
-				<a href="./Work.html#top" aria-current="page">Work</a>
-			</nav>
-			<a
-				class="landing-contact"
-				href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=designerwork.akshansh%40gmail.com"
-				target="_blank"
-				rel="noopener noreferrer"
-			>
-				Let’s talk <span aria-hidden="true">↗</span>
-			</a>
-		</header>
+		<floating-page-link
+			href="./Webtool.html#top"
+			label="Motion Tool"
+			accessible-label="Open Motion Tool page"
+		></floating-page-link>
 
-		<main>
-			<section class="landing-canvas" id="overview" aria-label="LedgerLoop overview">
-				<p class="coming-soon">soon</p>
+		<main id="top">
+			<section class="work-gallery" id="overview" aria-labelledby="gallery-title">
+				<header class="work-gallery__header">
+					<p class="work-gallery__eyebrow">Hover to play</p>
+					<h1 id="gallery-title">Work</h1>
+				</header>
+				<section class="work-gallery__group" aria-labelledby="figma-work-title">
+					<h2 class="work-gallery__group-title" id="figma-work-title">Figma Motion</h2>
+					<div class="work-gallery__grid">
+						<figure class="work-gallery__item">
+							<video src="./media/Figma%20Motion%20Templates.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Figma motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<img src="./media/Figma%20motion%20Tip.gif" alt="Figma motion project" loading="lazy" />
+							<button class="work-gallery__fullscreen" type="button" aria-label="View animation in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+					</div>
+				</section>
+
+				<section class="work-gallery__group" aria-labelledby="cavalry-work-title">
+					<h2 class="work-gallery__group-title" id="cavalry-work-title">Cavalry</h2>
+					<div class="work-gallery__grid">
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry%20%20circle%20and%20rectangle%20%2031%20oct.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry%20%20Eyes.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<img src="./media/Cavalry%20%20moon.gif" alt="Cavalry animated motion study" loading="lazy" />
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry%20%20submash%20rect.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry%20%20Transition.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry%202.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/cavalry%20Colour%20Ani.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry%20cude%20noen.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry%20ILLUSION.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry%20varfontv2.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Cavalry.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/27-12.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<img src="./media/B.DES%20in%20Graphic%20Design%20%28SEM%201%29%20Design%20Principle%20by%20Akshansh%20Davande%20%281%29.png" alt="Graphic design principles poster" loading="lazy" />
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Color%20Template.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Motion%20Idenitity.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<img src="./media/motion%20Beheviour.gif" alt="Animated Cavalry motion behavior study" loading="lazy" />
+						</figure>
+						<figure class="work-gallery__item">
+							<img src="./media/poster.jpg" alt="Motion design poster" loading="lazy" />
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Radial%20Showcase.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+						<figure class="work-gallery__item">
+							<video src="./media/Social.mp4" muted loop playsinline preload="metadata" tabindex="0" aria-label="Cavalry motion project"></video>
+							<button class="work-gallery__fullscreen" type="button" aria-label="View video in full screen">
+								<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4Zm11-5h5v5h-2V6h-3V4ZM6 15v3h3v2H4v-5h2Zm12 3v-3h2v5h-5v-2h3Z"/></svg>
+							</button>
+						</figure>
+					</div>
+				</section>
 			</section>
 
 			<section class="studio-handoff" id="work" aria-label="Studio handoff">
@@ -60,13 +178,28 @@
 				<p>Motion at Scale</p>
 				<span>Built for beyond the handoff.</span>
 			</div>
-			<a
-				href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=designerwork.akshansh%40gmail.com"
-				target="_blank"
-				rel="noopener noreferrer"
-			>
-				Let’s build your toolkit <span aria-hidden="true">↗</span>
-			</a>
+			<div class="landing-footer__links">
+				<nav class="landing-footer__socials" aria-label="Social media">
+					<a href="https://www.linkedin.com/in/akshanshmotion/" target="_blank" rel="noopener noreferrer">
+						<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM8.34 18H5.67V9.4h2.67ZM7 8.22a1.55 1.55 0 1 1 0-3.1 1.55 1.55 0 0 1 0 3.1ZM18.34 18h-2.67v-4.18c0-1-.02-2.28-1.39-2.28s-1.6 1.09-1.6 2.21V18h-2.67V9.4h2.56v1.17h.04a2.81 2.81 0 0 1 2.53-1.39c2.7 0 3.2 1.78 3.2 4.1Z"/></svg>
+						LinkedIn
+					</a>
+					<a href="https://www.instagram.com/akshansh.motion/" target="_blank" rel="noopener noreferrer">
+						<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2.2A2.8 2.8 0 0 0 4.2 7v10A2.8 2.8 0 0 0 7 19.8h10a2.8 2.8 0 0 0 2.8-2.8V7A2.8 2.8 0 0 0 17 4.2Zm5 3.1a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Zm0 2.2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm5.1-3.7a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2Z"/></svg>
+						Instagram
+					</a>
+				</nav>
+				<a
+					class="landing-footer__contact"
+					href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=designerwork.akshansh%40gmail.com"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					Let’s talk <span aria-hidden="true">↗</span>
+				</a>
+			</div>
 		</footer>
+		<script src="./floating-page-link.js" type="module"></script>
+		<script src="./work-gallery.js" defer></script>
 	</body>
 </html>

@@ -20,11 +20,7 @@
 	<body>
 		<div class="site-shell">
 			<header class="site-header" id="top">
-				<a class="brand" href="#top" aria-label="Akshansh, home">Akshansh</a>
-				<nav class="main-nav" aria-label="Main navigation">
-					<a class="main-nav__link main-nav__link--current" href="#toolkit" aria-current="page">Motion Tool</a>
-					<a class="main-nav__link" href="./Work.html#top">Work</a>
-				</nav>
+				<a class="brand" href="#top" aria-label="Akshansh, home">akshansh</a>
 				<a
 					class="contact-link"
 					href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=designerwork.akshansh%40gmail.com"
@@ -34,31 +30,14 @@
 					Let’s talk <span aria-hidden="true">↗</span>
 				</a>
 			</header>
+			<floating-page-link
+				href="./Work.html#top"
+				label="Work"
+				accessible-label="Open Work page"
+			></floating-page-link>
 
 			<main>
-				<section class="intro" aria-labelledby="page-title">
-					<div class="intro__heading">
-						<p class="eyebrow">A scalable system empowers global teams.</p>
-						<h1 id="page-title">Motion Toolkit</h1>
-					</div>
-					<div class="intro__description">
-						<p>
-							As an interactive motion designer, I simplify brand workflows so
-							marketing teams can deliver engaging experiences on a global scale,
-							fast.
-						</p>
-						<a class="try-link" href="#toolkit">
-							<span class="try-link__arrow" aria-hidden="true">↓</span>
-							<span>Try it out</span>
-						</a>
-					</div>
-				</section>
-
-				<section class="toolkit-section" id="toolkit" aria-labelledby="section-title">
-					<p class="section-label" id="section-title">
-						<span>01</span><span aria-hidden="true">/</span> Announcement
-					</p>
-
+				<section class="toolkit-section" id="toolkit" aria-labelledby="page-title">
 					<div class="editor">
 						<div class="editor__preview">
 							<header class="editor-toolbar">
@@ -82,21 +61,46 @@
 									<span class="playback__head"></span>
 								</div>
 								<span class="playback__duration">00:08</span>
-								<button class="playback__replay" type="button" aria-label="Replay animation">↻</button>
+								<button
+									class="playback__download"
+									type="button"
+									aria-label="Download animation"
+									aria-describedby="export-note"
+									title="Download animation"
+								>
+									<svg aria-hidden="true" viewBox="0 0 24 24">
+										<path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" />
+									</svg>
+								</button>
 							</div>
 						</div>
 
-						<aside class="control-centre" aria-labelledby="control-title">
-							<header class="control-centre__header">
-								<h2 id="control-title">Control Centre</h2>
-							</header>
+						<aside class="control-centre" aria-label="Announcement controls">
 							<div class="control-centre__content">
+								<p class="section-label">
+									<span>01</span><span aria-hidden="true">/</span> Announcement
+								</p>
+
+								<div class="toolkit-copy">
+									<p class="eyebrow">A scalable system empowers global teams.</p>
+									<h1 id="page-title">Motion Toolkit</h1>
+									<p>
+										As an interactive motion designer, I simplify brand workflows so
+										marketing teams can deliver engaging experiences on a global scale,
+										fast.
+									</p>
+								</div>
+
 								<div class="control-intro">
 									<h3>One motion system. Every campaign phase.</h3>
 									<p>
 										For LedgerLoop, a fictional SaaS finance platform, rebuilding every Black Friday campaign phase from scratch slowed production and weakened consistency. A reusable motion system lets marketing adapt each phase without design software—keeping the campaign fast, flexible, and consistent.
 									</p>
 								</div>
+
+								<p class="control-instruction">
+									Customize the controls below to update the live preview.
+								</p>
 
 								<div class="customise-form">
 									<div id="control-center-controls" class="control-center-controls" aria-live="polite">
@@ -138,29 +142,11 @@
 									</div>
 
 									<div class="customise-form__actions">
-										<button class="export-button" id="export-animation" type="button" aria-describedby="export-note">
-											Export animation <span aria-hidden="true">↓</span>
-										</button>
 										<p class="export-note" id="export-note" role="status" aria-live="polite">MP4 · 1080 × 1350</p>
 									</div>
 								</div>
 							</div>
 						</aside>
-					</div>
-				</section>
-
-				<section class="handoff" id="work" aria-label="Toolkit overview">
-					<div class="handoff__item">
-						<span class="handoff__number">01</span>
-						<h2>Motion Identity</h2>
-					</div>
-					<div class="handoff__item">
-						<span class="handoff__number">02</span>
-						<h2>Motion Guidelines</h2>
-					</div>
-					<div class="handoff__item">
-						<span class="handoff__number">03</span>
-						<h2>Motion Toolkit</h2>
 					</div>
 				</section>
 			</main>
@@ -170,13 +156,21 @@
 					<p>Motion at Scale</p>
 					<span>Built for beyond the handoff.</span>
 				</div>
-				<a
-					href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=designerwork.akshansh%40gmail.com"
-					target="_blank"
-					rel="noopener noreferrer"
-				>Let’s build your toolkit <span aria-hidden="true">↗</span></a>
+				<div class="site-footer__links">
+					<nav class="site-footer__socials" aria-label="Social media">
+						<a href="https://www.linkedin.com/in/akshanshmotion/" target="_blank" rel="noopener noreferrer">
+							<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM8.34 18H5.67V9.4h2.67ZM7 8.22a1.55 1.55 0 1 1 0-3.1 1.55 1.55 0 0 1 0 3.1ZM18.34 18h-2.67v-4.18c0-1-.02-2.28-1.39-2.28s-1.6 1.09-1.6 2.21V18h-2.67V9.4h2.56v1.17h.04a2.81 2.81 0 0 1 2.53-1.39c2.7 0 3.2 1.78 3.2 4.1Z"/></svg>
+							LinkedIn
+						</a>
+						<a href="https://www.instagram.com/akshansh.motion/" target="_blank" rel="noopener noreferrer">
+							<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2.2A2.8 2.8 0 0 0 4.2 7v10A2.8 2.8 0 0 0 7 19.8h10a2.8 2.8 0 0 0 2.8-2.8V7A2.8 2.8 0 0 0 17 4.2Zm5 3.1a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Zm0 2.2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm5.1-3.7a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2Z"/></svg>
+							Instagram
+						</a>
+					</nav>
+				</div>
 			</footer>
 		</div>
+		<script src="./floating-page-link.js" type="module"></script>
 		<script src="./motion-toolkit.js" type="module"></script>
 	</body>
 </html>
