@@ -170,6 +170,36 @@ a:focus-visible {
 	outline-offset: -3px;
 }
 
+.work-gallery__template-link {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 20px;
+	padding: 12px 18px;
+	border: 1px solid #505054;
+	border-radius: 7px;
+	transition:
+		border-color 160ms ease,
+		background-color 160ms ease;
+}
+
+.work-gallery__template-link:hover {
+	border-color: #85848b;
+	background: #141518;
+}
+
+.work-gallery__template-link > span {
+	color: var(--muted);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.work-gallery__template-link strong {
+	font-size: 13px;
+	font-weight: 500;
+}
+
 .studio-handoff {
 	display: grid;
 	min-height: 84px;
