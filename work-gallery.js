@@ -29,7 +29,23 @@ for (const video of videos) {
 		figure.addEventListener('mouseenter', playVideo);
 		figure.addEventListener('mouseleave', pauseVideo);
 	} else {
-		video.controls = true;
+		video.addEventListener('click', () => {
+			if (video.paused) {
+				playVideo();
+			} else {
+				pauseVideo();
+			}
+		});
+		video.addEventListener('keydown', (event) => {
+			if (event.code === 'Space' || event.code === 'Enter') {
+				event.preventDefault();
+				if (video.paused) {
+					playVideo();
+				} else {
+					pauseVideo();
+				}
+			}
+		});
 	}
 
 	fullscreenButton.addEventListener('click', () => {
