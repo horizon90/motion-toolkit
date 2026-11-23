@@ -131,7 +131,33 @@ async function initialise() {
 			downloadButton.click()
 		}
 
-		playbackDownloadButton.addEventListener('click', downloadAnimation)
+		let downloadDelayTimer = null
+		let downloadCountdown = 5
+
+		playbackDownloadButton.addEventListener('click', () => {
+			if (downloadDelayTimer) return
+
+			const apolloForm =
+				'https://app.apollo.io/apollo-inbound.html?feature=form-builder&appId=6b043528eeb41800149ee765&mode=share'
+			window.open(apolloForm, '_blank', 'noopener,noreferrer')
+
+			playbackDownloadButton.disabled = true
+			downloadCountdown = 5
+			exportNote.textContent = `Opening email form. Downloading in ${downloadCountdown}s...`
+
+			downloadDelayTimer = window.setInterval(() => {
+				downloadCountdown -= 1
+				if (downloadCountdown > 0) {
+					exportNote.textContent = `Opening email form. Downloading in ${downloadCountdown}s...`
+					return
+				}
+
+				window.clearInterval(downloadDelayTimer)
+				downloadDelayTimer = null
+				playbackDownloadButton.disabled = false
+				downloadAnimation()
+			}, 1000)
+		})
 
 		const downloadStatus = playerMount.querySelector('#downloadStatus')
 		if (downloadStatus) {

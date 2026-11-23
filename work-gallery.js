@@ -1,6 +1,41 @@
 const videos = document.querySelectorAll('.work-gallery__item video');
 const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+const templateLinks = document.querySelectorAll('.work-gallery__template-link');
+for (const templateLink of templateLinks) {
+	templateLink.addEventListener('click', (event) => {
+		event.preventDefault();
+		if (templateLink.dataset.downloadPending === 'true') return;
+
+		templateLink.dataset.downloadPending = 'true';
+		templateLink.setAttribute('aria-disabled', 'true');
+
+		const apolloForm = templateLink.dataset.apolloForm;
+		if (apolloForm) {
+			window.open(apolloForm, '_blank', 'noopener,noreferrer');
+		}
+
+		const label = templateLink.querySelector('strong');
+		const originalLabel = label?.innerHTML;
+		let remainingSeconds = 5;
+		if (label) label.textContent = `Continuing in ${remainingSeconds}s...`;
+
+		const countdown = window.setInterval(() => {
+			remainingSeconds -= 1;
+			if (remainingSeconds > 0) {
+				if (label) label.textContent = `Continuing in ${remainingSeconds}s...`;
+				return;
+			}
+
+			window.clearInterval(countdown);
+			if (label && originalLabel) label.innerHTML = originalLabel;
+			templateLink.removeAttribute('aria-disabled');
+			templateLink.dataset.downloadPending = 'false';
+			window.location.assign(templateLink.href);
+		}, 1000);
+	});
+}
+
 for (const video of videos) {
 	const figure = video.closest('.work-gallery__item');
 	const fullscreenButton = figure.querySelector('.work-gallery__fullscreen');
