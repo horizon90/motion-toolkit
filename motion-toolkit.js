@@ -1,9 +1,10 @@
-const sceneUrl = './WEBTOOL.cv'
+const sceneUrl = './WebTool v3.cv'
 
 async function initialise() {
 	const previewStage = document.querySelector('.preview-stage')
 	const playerMount = document.getElementById('player')
 	const controlsContainer = document.getElementById('control-center-controls')
+	const resolutionControls = document.getElementById('resolution-controls')
 	const sceneStatus = document.getElementById('scene-status')
 	const playButton = document.querySelector('.playback__play')
 	const playbackDownloadButton = document.querySelector('.playback__download')
@@ -18,6 +19,7 @@ async function initialise() {
 		!previewStage ||
 		!playerMount ||
 		!controlsContainer ||
+		!resolutionControls ||
 		!sceneStatus ||
 		!playButton ||
 		!playbackDownloadButton ||
@@ -34,6 +36,20 @@ async function initialise() {
 	let player
 	let uiFrameId = null
 	let isSeeking = false
+	const fitPreview = (resolution) => {
+		const playerContainer = playerMount.querySelector('.player-container')
+		if (!playerContainer || resolution.width <= 0 || resolution.height <= 0) return
+
+		const availableWidth = Math.max(1, previewStage.clientWidth - 56)
+		const availableHeight = Math.max(1, previewStage.clientHeight - 56)
+		const scale = Math.min(
+			availableWidth / resolution.width,
+			availableHeight / resolution.height,
+			458 / resolution.width,
+		)
+		playerContainer.style.width = `${Math.round(resolution.width * scale)}px`
+		playerContainer.style.height = `${Math.round(resolution.height * scale)}px`
+	}
 
 	const syncPlaybackUi = () => {
 		if (!player?.player) return
@@ -82,17 +98,32 @@ async function initialise() {
 
 		const contents = new Uint8Array(await response.arrayBuffer())
 		const sceneDefinition = JSON.parse(new TextDecoder().decode(contents))
-		await player.loadScene(contents, 'WEBTOOL.cv')
+		const playerScene = prepareSceneForPlayer(sceneDefinition)
+		await player.loadScene(playerScene, 'WebTool v3.cv', './')
 
 		if (!player.player) {
 			throw new Error('The Cavalry scene could not be initialized.')
 		}
 
-		renderControlCentreInputs(sceneDefinition, player, controlsContainer)
+		renderControlCentreInputs(
+			sceneDefinition,
+			player,
+			controlsContainer,
+			resolutionControls,
+			previewStage,
+			playerMount,
+			exportNote,
+		)
 		sceneStatus.textContent = 'Cavalry scene loaded.'
 		const resolution = player.player.getSceneResolution()
+		fitPreview(resolution)
+		player.resize()
 		exportNote.textContent = `MP4 · ${resolution.width} × ${resolution.height}`
 		syncPlaybackUi()
+		window.addEventListener('resize', () => {
+			fitPreview(player.player.getSceneResolution())
+			player.resize()
+		})
 
 		playButton.addEventListener('click', () => {
 			player.togglePlayback()
@@ -195,141 +226,558 @@ async function initialise() {
 	}
 }
 
-function renderControlCentreInputs(scene, player, container) {
-	const items = scene.controlCenter?.items?.filter(
-		(item) => item.kind === 'attr' && typeof item.path === 'string',
-	)
-	container.replaceChildren()
+function prepareSceneForPlayer(scene) {
+	for (const asset of scene.assets || []) {
+		const filePath = asset.data?.filePath
+		if (typeof filePath !== 'string') continue
 
-	if (!items?.length) {
-		const message = document.createElement('p')
-		message.className = 'export-note'
-		message.textContent = 'Control Centre is empty.'
-		container.appendChild(message)
-		return
+		const filename = filePath.replace(/\\/g, '/').split('/').filter(Boolean).pop()
+		if (!filename) {
+			throw new Error(`The scene asset ${asset.nodeId} has an invalid file path.`)
+		}
+		asset.data.filePath = `@project/${filename}`
 	}
 
-	for (const [index, item] of items.entries()) {
-		const [layerId, ...attributeParts] = item.path.split('.')
+	const svgInput = scene.controlCenter?.items
+		?.flatMap((item) => {
+			if (item.kind === 'group') return item.attrs || []
+			return item.kind === 'attr' && typeof item.path === 'string'
+				? [item.path]
+				: []
+		})
+		.find((path) => {
+			const [nodeId, attributeId] = path.split('.')
+			const node = scene.nodes.find((entry) => entry.nodeId === nodeId)
+			return attributeId === 'input' && node?.nodeType === 'svgShape'
+		})
+
+	if (svgInput) {
+		const svgNodeId = svgInput.split('.')[0]
+		const svgNode = scene.nodes.find((node) => node.nodeId === svgNodeId)
+		if (svgNode?.attributes?.hidden?.varType === 'bool') {
+			svgNode.attributes.hidden.value = false
+		}
+		const materialId = scene.connections
+			?.find((connection) => connection.to === `${svgNodeId}.material`)
+			?.from.split('.')[0]
+		const materialNode = scene.nodes.find((node) => node.nodeId === materialId)
+		const materialColor = materialNode?.attributes?.materialColor?.value
+		if (materialColor && materialColor.a === 0) {
+			materialColor.a = 255
+		}
+	}
+
+	return new TextEncoder().encode(JSON.stringify(scene))
+}
+
+function renderControlCentreInputs(
+	scene,
+	player,
+	container,
+	resolutionControls,
+	previewStage,
+	playerMount,
+	exportNote,
+) {
+	const paths =
+		scene.controlCenter?.items?.flatMap((item) => {
+			if (item.kind === 'group') return item.attrs || []
+			return item.kind === 'attr' && typeof item.path === 'string'
+				? [item.path]
+				: []
+		}) || []
+	container.replaceChildren()
+
+	let renderedControls = 0
+	let svgUploadControl = null
+	let svgColourControls = null
+	let anchorControls = null
+	let lineControls = null
+
+	const getSvgColourControls = () => {
+		if (!svgColourControls) {
+			svgColourControls = document.createElement('div')
+			svgColourControls.className = 'svg-colour-controls'
+			svgColourControls.setAttribute('role', 'group')
+			svgColourControls.setAttribute('aria-label', 'SVG stroke and fill colours')
+			container.appendChild(svgColourControls)
+		}
+		return svgColourControls
+	}
+
+	const getAnchorControls = () => {
+		if (!anchorControls) {
+			anchorControls = document.createElement('div')
+			anchorControls.className = 'control-group anchor-controls'
+			anchorControls.setAttribute('role', 'group')
+			anchorControls.setAttribute('aria-label', 'Anchor point controls')
+			container.appendChild(anchorControls)
+		}
+		return anchorControls
+	}
+
+	const getLineControls = () => {
+		if (!lineControls) {
+			lineControls = document.createElement('div')
+			lineControls.className = 'control-group line-controls'
+			lineControls.setAttribute('role', 'group')
+			lineControls.setAttribute('aria-label', 'Line controls')
+			container.appendChild(lineControls)
+		}
+		return lineControls
+	}
+
+	for (const path of paths) {
+		const [layerId, ...attributeParts] = path.split('.')
 		const attributeId = attributeParts.join('.')
 		const node = scene.nodes.find((entry) => entry.nodeId === layerId)
 		const serializedValue = getSceneAttributeValue(node, attributeParts)
 		const value =
 			player.player.getAttribute(layerId, attributeId) ?? serializedValue ?? ''
-		const definition = player.player.getAttributeDefinition(layerId, attributeId)
-		const controlPath = item.path
-		const labels = {
-			'stringArray#1.array.1': 'Title',
-			'stringArray#1.array.0': 'Announcement',
-			'transitionString#1.transitionFromEnd': 'Transition from the end',
-			'colorArray#7.arrayIndex': 'Text Color',
+		const setValue = (newValue) => setSceneAttribute(path, newValue)
+
+		switch (path) {
+			case 'svgShape#4.input':
+				svgUploadControl = createSvgUploadControl(scene, player, path)
+				renderedControls += 1
+				break
+			case 'strokeMaterial#126.strokeColor':
+				getSvgColourControls().appendChild(
+					createColorControl('Strokes fill', value, setValue),
+				)
+				renderedControls += 1
+				break
+			case 'compNode#7.resolution':
+				createResolutionControl(
+					resolutionControls,
+					value,
+					(resolution) => setSceneAttribute(path, resolution, true),
+				)
+				renderedControls += 1
+				break
+			case 'colorMaterial#114.materialColor':
+				container.appendChild(
+					createColorControl('Canvas colour', value, setValue, true),
+				)
+				renderedControls += 1
+				break
+			case 'rectangleShape#20.cornerRadius':
+				getAnchorControls().appendChild(
+					createAnchorShapeControl(Number(value), setValue),
+				)
+				renderedControls += 1
+				break
+			case 'colorMaterial#128.materialColor':
+				getAnchorControls().appendChild(
+					createColorControl('Anchor Point Color', value, setValue, true),
+				)
+				renderedControls += 1
+				break
+			case 'colorMaterial#119.materialColor':
+				getSvgColourControls().appendChild(
+					createColorControl('SVG fill colour', value, setValue, true),
+				)
+				renderedControls += 1
+				break
+			case 'strokeMaterial#132.strokeColor':
+				getLineControls().appendChild(
+					createColorControl('Line fill', value, setValue, true),
+				)
+				renderedControls += 1
+				break
+			case 'strokeMaterial#132.width':
+				getLineControls().appendChild(
+					createRangeControl('Line Width', Number(value), setValue, 0, 10, 0.1, 1),
+				)
+				renderedControls += 1
+				break
 		}
-		const labelText =
-			labels[controlPath] ||
-			player.player.getAttributeName(layerId, attributeId) ||
-			`${node?.attributes?.niceName?.value || layerId} ${attributeId}`
-
-		if (controlPath === 'colorArray#7.arrayIndex') {
-			container.appendChild(
-				createColorControl(labelText, Number(value), (selectedIndex) => {
-					setSceneAttribute(layerId, attributeId, selectedIndex)
-				}),
-			)
-			continue
-		}
-
-		if (definition.type === 'bool') {
-			container.appendChild(
-				createToggleControl(labelText, Boolean(value), (checked) => {
-					setSceneAttribute(layerId, attributeId, checked)
-				}),
-			)
-			continue
-		}
-
-		const group = document.createElement('div')
-		group.className = 'field'
-		const label = document.createElement('label')
-		label.htmlFor = `control-center-input-${index}`
-		label.textContent = labelText
-		group.appendChild(label)
-
-		const input = String(value).includes('\n')
-			? document.createElement('textarea')
-			: document.createElement('input')
-		if (input instanceof HTMLInputElement) input.type = 'text'
-		else input.rows = 2
-		input.id = label.htmlFor
-		input.value = String(value)
-		input.addEventListener('input', () => {
-			setSceneAttribute(layerId, attributeId, input.value)
-		})
-		group.appendChild(input)
-		container.appendChild(group)
 	}
 
-	function setSceneAttribute(layerId, attributeId, newValue) {
+	if (svgUploadControl) {
+		container.appendChild(svgUploadControl)
+	}
+
+	if (renderedControls === 0) {
+		const message = document.createElement('p')
+		message.className = 'control-message'
+		message.textContent = 'No supported Control Centre attributes were found.'
+		container.appendChild(message)
+	}
+
+	function setSceneAttribute(path, newValue, updateResolution = false) {
+		const [layerId, ...attributeParts] = path.split('.')
+		const attributeId = attributeParts.join('.')
 		player.player.setAttribute(layerId, attributeId, newValue)
-		if (!player.player.isPlaying()) player.render()
+
+		if (updateResolution) {
+			const resolution = player.player.getSceneResolution()
+			const playerContainer = playerMount.querySelector('.player-container')
+			if (playerContainer) {
+				fitPreviewToResolution(playerContainer, resolution, previewStage)
+			}
+			player.resize()
+			exportNote.textContent = `MP4 · ${resolution.width} × ${resolution.height}`
+		} else if (!player.player.isPlaying()) {
+			player.render()
+		}
+	}
+
+	function fitPreviewToResolution(playerContainer, resolution, stage) {
+		const availableWidth = Math.max(1, stage.clientWidth - 56)
+		const availableHeight = Math.max(1, stage.clientHeight - 56)
+		const scale = Math.min(
+			availableWidth / resolution.width,
+			availableHeight / resolution.height,
+			458 / resolution.width,
+		)
+		playerContainer.style.width = `${Math.round(resolution.width * scale)}px`
+		playerContainer.style.height = `${Math.round(resolution.height * scale)}px`
 	}
 }
 
-function createToggleControl(labelText, checked, onChange) {
+function createSvgUploadControl(scene, player, path) {
 	const group = document.createElement('div')
-	group.className = 'field toggle-field'
-	const labelId = 'transition-from-end-label'
-	const text = document.createElement('span')
-	text.id = labelId
-	text.textContent = labelText
-
-	const label = document.createElement('label')
-	label.className = 'toggle-switch'
+	group.className = 'field svg-upload-control'
+	const uploadLabel = document.createElement('label')
+	uploadLabel.className = 'svg-upload-button'
 	const input = document.createElement('input')
-	input.type = 'checkbox'
-	input.checked = checked
-	input.setAttribute('aria-labelledby', labelId)
-	input.addEventListener('change', () => onChange(input.checked))
-	const track = document.createElement('span')
-	track.className = 'toggle-switch__track'
-	track.setAttribute('aria-hidden', 'true')
+	input.className = 'svg-upload-input'
+	input.type = 'file'
+	input.accept = '.svg,image/svg+xml'
+	input.setAttribute('aria-label', 'Upload SVG')
+	const buttonText = document.createElement('span')
+	buttonText.textContent = 'Upload SVG'
+	uploadLabel.append(input, createControlIcon('upload'), buttonText)
 
-	label.append(input, track)
-	group.append(text, label)
+	const status = document.createElement('p')
+	status.className = 'control-message'
+	status.setAttribute('role', 'status')
+	status.textContent = 'SVG width must be 800px (±10px).'
+	group.append(uploadLabel, status)
+
+	input.addEventListener('change', async () => {
+		const file = input.files?.[0]
+		if (!file) return
+
+		try {
+			if (!file.name.toLowerCase().endsWith('.svg')) {
+				throw new Error('Choose an SVG file.')
+			}
+			const svgText = await file.text()
+			const width = readSvgWidth(svgText)
+			if (width < 790 || width > 810) {
+				throw new Error(`SVG width must be between 790px and 810px; this file is ${width}px wide.`)
+			}
+
+			const assetId = getAssetIdForAttribute(scene, path)
+			if (!assetId) {
+				throw new Error('The scene does not expose a replaceable SVG asset.')
+			}
+
+			const filename = `uploaded-artwork-${Date.now()}.svg`
+			const contents = new Uint8Array(await file.arrayBuffer())
+			player.module.FS.writeFile(filename, contents)
+			await player.loadAsset({ assetId, filename, type: 'svg' })
+			if (!player.player.isPlaying()) player.render()
+			status.removeAttribute('aria-invalid')
+			status.textContent = `${file.name} uploaded (${width}px wide).`
+			input.value = ''
+		} catch (error) {
+			console.error('[Motion Toolkit] SVG upload failed:', error)
+			status.setAttribute('aria-invalid', 'true')
+			status.textContent =
+				error instanceof Error ? error.message : 'Unable to upload this SVG.'
+			input.value = ''
+		}
+	})
+
 	return group
 }
 
-function createColorControl(labelText, selectedIndex, onChange) {
-	const group = document.createElement('fieldset')
-	group.className = 'field color-field'
-	const legend = document.createElement('legend')
-	legend.textContent = labelText
-	group.appendChild(legend)
-
-	const presets = document.createElement('div')
-	presets.className = 'color-presets'
-	const options = [
-		{ index: 0, name: 'Red', hex: '#ff0013', className: 'color-preset--red' },
-		{ index: 1, name: 'Black', hex: '#000000', className: 'color-preset--black' },
-		{ index: 2, name: 'White', hex: '#ffffff', className: 'color-preset--white' },
-	]
-	for (const option of options) {
-		const label = document.createElement('label')
-		label.className = `color-preset ${option.className}`
-		const input = document.createElement('input')
-		input.type = 'radio'
-		input.name = 'scene-text-color'
-		input.value = String(option.index)
-		input.checked = selectedIndex === option.index
-		input.addEventListener('change', () => {
-			if (input.checked) onChange(option.index)
-		})
-		const accessibleName = document.createElement('span')
-		accessibleName.className = 'visually-hidden'
-		accessibleName.textContent = `${option.name} ${option.hex}`
-		label.append(input, accessibleName)
-		presets.appendChild(label)
+function readSvgWidth(svgText) {
+	const documentNode = new DOMParser().parseFromString(svgText, 'image/svg+xml')
+	const svg = documentNode.documentElement
+	if (svg.localName !== 'svg' || documentNode.querySelector('parsererror')) {
+		throw new Error('The selected file is not a valid SVG.')
 	}
-	group.appendChild(presets)
+
+	const widthAttribute = svg.getAttribute('width')
+	if (widthAttribute) {
+		const match = widthAttribute.trim().match(/^(\d+(?:\.\d+)?)\s*(?:px)?$/i)
+		if (!match) {
+			throw new Error('The SVG must declare its width in pixels.')
+		}
+		return Number(match[1])
+	}
+
+	const viewBox = svg.getAttribute('viewBox')?.trim().split(/[\s,]+/)
+	if (viewBox?.length === 4 && Number.isFinite(Number(viewBox[2]))) {
+		return Number(viewBox[2])
+	}
+	throw new Error('The SVG needs a pixel width or a valid viewBox width.')
+}
+
+function getAssetIdForAttribute(scene, path) {
+	const connection = scene.connections?.find((entry) => entry.to === path)
+	return connection?.from?.split('.')[0] || ''
+}
+
+function createColorControl(labelText, value, onChange, allowTransparency = false) {
+	let color = normalizeColor(value)
+	const group = document.createElement('div')
+	group.className = 'field color-control'
+	group.setAttribute('role', 'group')
+	group.setAttribute('aria-label', labelText)
+	const label = document.createElement('div')
+	label.className = 'field__control-label'
+	label.append(
+		createControlIcon(getControlIconName(labelText)),
+		document.createTextNode(labelText),
+	)
+
+	const row = document.createElement('div')
+	row.className = 'color-control__row'
+	const picker = document.createElement('input')
+	picker.type = 'color'
+	picker.value = colorToHex(color)
+	picker.setAttribute('aria-label', `${labelText} colour picker`)
+	const hex = document.createElement('input')
+	hex.className = 'hex-input'
+	hex.type = 'text'
+	hex.value = colorToHex(color)
+	hex.maxLength = 7
+	hex.pattern = '^#?[0-9a-fA-F]{6}$'
+	hex.title = 'Enter a 6-digit hex colour, for example #ffffff.'
+	hex.setAttribute('aria-label', `${labelText} hex colour`)
+
+	const updateFromHex = (hexValue) => {
+		const match = hexValue.trim().match(/^#?([0-9a-f]{6})$/i)
+		if (!match) {
+			hex.setAttribute('aria-invalid', 'true')
+			return
+		}
+		hex.removeAttribute('aria-invalid')
+		const hexDigits = match[1]
+		const updated = {
+			r: Number.parseInt(hexDigits.slice(0, 2), 16),
+			g: Number.parseInt(hexDigits.slice(2, 4), 16),
+			b: Number.parseInt(hexDigits.slice(4, 6), 16),
+			a: 255,
+		}
+		color = updated
+		picker.value = `#${hexDigits}`
+		hex.value = `#${hexDigits}`
+		transparentButton?.setAttribute('aria-pressed', 'false')
+		onChange(updated)
+	}
+
+	picker.addEventListener('input', () => updateFromHex(picker.value))
+	hex.addEventListener('change', () => updateFromHex(hex.value))
+	row.append(picker, hex)
+
+	let transparentButton
+	if (allowTransparency) {
+		transparentButton = document.createElement('button')
+		transparentButton.className = 'control-button'
+		transparentButton.type = 'button'
+		transparentButton.append(
+			createControlIcon('transparent'),
+			document.createTextNode('Transparent'),
+		)
+		transparentButton.setAttribute('aria-pressed', String(color.a === 0))
+		transparentButton.addEventListener('click', () => {
+			color = { ...color, a: 0 }
+			transparentButton.setAttribute('aria-pressed', 'true')
+			onChange(color)
+		})
+		row.appendChild(transparentButton)
+	}
+
+	group.append(label, row)
+	return group
+}
+
+function normalizeColor(value) {
+	const channel = (name, fallback) => {
+		const number = Number(value?.[name])
+		return Number.isFinite(number)
+			? Math.max(0, Math.min(255, Math.round(number)))
+			: fallback
+	}
+	return {
+		r: channel('r', 255),
+		g: channel('g', 255),
+		b: channel('b', 255),
+		a: channel('a', 255),
+	}
+}
+
+function colorToHex(color) {
+	return `#${[color.r, color.g, color.b]
+		.map((channel) => channel.toString(16).padStart(2, '0'))
+		.join('')}`
+}
+
+function getControlIconName(labelText) {
+	if (/canvas/i.test(labelText)) return 'canvas'
+	if (/anchor/i.test(labelText)) return 'anchor'
+	if (/line width/i.test(labelText)) return 'line-width'
+	if (/stroke|line/i.test(labelText)) return 'stroke'
+	if (/fill/i.test(labelText)) return 'fill'
+	return 'control'
+}
+
+function createControlIcon(name) {
+	const iconShapes = {
+		upload: [['path', { d: 'M12 15V3m0 0 4 4m-4-4L8 7M5 14v5h14v-5' }]],
+		stroke: [['path', { d: 'M4 17 20 7' }]],
+		fill: [['path', { d: 'M12 3 19 14a7 7 0 1 1-14 0L12 3Z' }]],
+		canvas: [
+			['rect', { x: 3, y: 4, width: 18, height: 16, rx: 2 }],
+			['path', { d: 'M8 4v16M3 9h5' }],
+		],
+		anchor: [
+			['circle', { cx: 12, cy: 12, r: 7 }],
+			['path', { d: 'M12 2v4m0 12v4M2 12h4m12 0h4' }],
+		],
+		square: [['rect', { x: 5, y: 5, width: 14, height: 14, rx: 1 }]],
+		circle: [['circle', { cx: 12, cy: 12, r: 7 }]],
+		transparent: [
+			['rect', { x: 3, y: 3, width: 18, height: 18, rx: 2 }],
+			['path', { d: 'M12 3v18M3 12h18' }],
+		],
+		'line-width': [['path', { d: 'M4 12h16M7 9l-3 3 3 3m10-6 3 3-3 3' }]],
+		landscape: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 1 }]],
+		squareRatio: [['rect', { x: 5, y: 5, width: 14, height: 14, rx: 1 }]],
+		portrait: [['rect', { x: 6, y: 3, width: 12, height: 18, rx: 1 }]],
+		control: [['circle', { cx: 12, cy: 12, r: 7 }]],
+	}
+	const namespace = 'http://www.w3.org/2000/svg'
+	const icon = document.createElementNS(namespace, 'svg')
+	icon.classList.add('control-icon')
+	icon.setAttribute('viewBox', '0 0 24 24')
+	icon.setAttribute('aria-hidden', 'true')
+	icon.setAttribute('focusable', 'false')
+
+	for (const [tagName, attributes] of iconShapes[name] || iconShapes.control) {
+		const shape = document.createElementNS(namespace, tagName)
+		for (const [attribute, value] of Object.entries(attributes)) {
+			shape.setAttribute(attribute, String(value))
+		}
+		icon.appendChild(shape)
+	}
+
+	return icon
+}
+
+function createResolutionControl(container, value, onChange) {
+	const options = [
+		{ label: '16:9', name: 'Landscape', icon: 'landscape', width: 1920, height: 1080 },
+		{ label: '1:1', name: 'Square', icon: 'squareRatio', width: 1080, height: 1080 },
+		{ label: '4:5', name: 'Portrait', icon: 'portrait', width: 1080, height: 1350 },
+	]
+	const current = normalizeResolution(value)
+	const buttons = []
+
+	for (const option of options) {
+		const button = document.createElement('button')
+		button.type = 'button'
+		button.className = 'resolution-button'
+		button.append(createControlIcon(option.icon), document.createTextNode(option.label))
+		button.setAttribute('aria-label', `${option.name}, ${option.label}`)
+		button.setAttribute(
+			'aria-pressed',
+			String(option.width === current.width && option.height === current.height),
+		)
+		button.addEventListener('click', () => {
+			for (const candidate of buttons) {
+				candidate.setAttribute('aria-pressed', String(candidate === button))
+			}
+			onChange([option.width, option.height])
+		})
+		buttons.push(button)
+		container.appendChild(button)
+	}
+}
+
+function normalizeResolution(value) {
+	const width = Number(Array.isArray(value) ? value[0] : value?.x)
+	const height = Number(Array.isArray(value) ? value[1] : value?.y)
+	return {
+		width: Number.isFinite(width) && width > 0 ? Math.round(width) : 1920,
+		height: Number.isFinite(height) && height > 0 ? Math.round(height) : 1080,
+	}
+}
+
+function createAnchorShapeControl(radius, onChange) {
+	const group = document.createElement('div')
+	group.className = 'field anchor-shape-control'
+	group.setAttribute('role', 'group')
+	group.setAttribute('aria-label', 'Anchor point shape')
+	const label = document.createElement('div')
+	label.className = 'field__control-label'
+	label.append(
+		createControlIcon('anchor'),
+		document.createTextNode('Anchor point shape'),
+	)
+	const choices = document.createElement('div')
+	choices.className = 'field__choices'
+
+	for (const option of [
+		{ label: 'Square', icon: 'square', radius: 0 },
+		{ label: 'Circle', icon: 'circle', radius: 10 },
+	]) {
+		const button = document.createElement('button')
+		button.className = 'control-button'
+		button.type = 'button'
+		button.append(createControlIcon(option.icon), document.createTextNode(option.label))
+		button.setAttribute('aria-pressed', String(radius === option.radius))
+		button.addEventListener('click', () => {
+			for (const choice of choices.querySelectorAll('button')) {
+				choice.setAttribute('aria-pressed', String(choice === button))
+			}
+			onChange(option.radius)
+		})
+		choices.appendChild(button)
+	}
+
+	group.append(label, choices)
+	return group
+}
+
+function createRangeControl(
+	labelText,
+	value,
+	onChange,
+	min,
+	max,
+	step,
+	decimals,
+) {
+	const group = document.createElement('div')
+	group.className = 'field range-control'
+	const label = document.createElement('label')
+	label.append(
+		createControlIcon(getControlIconName(labelText)),
+		document.createTextNode(labelText),
+	)
+	const input = document.createElement('input')
+	input.type = 'range'
+	input.min = String(min)
+	input.max = String(max)
+	input.step = String(step)
+	input.value = String(Math.max(min, Math.min(max, value)))
+	input.setAttribute('aria-label', labelText)
+	const output = document.createElement('output')
+	output.className = 'field__value'
+	output.textContent = Number(input.value).toFixed(decimals)
+	input.addEventListener('input', () => {
+		const numericValue = Number(input.value)
+		output.textContent = numericValue.toFixed(decimals)
+		onChange(numericValue)
+	})
+	group.append(label, input, output)
 	return group
 }
 

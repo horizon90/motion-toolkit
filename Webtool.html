@@ -5,10 +5,10 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta
 			name="description"
-			content="A scalable motion toolkit for creating brand-safe animated content."
+			content="A motion tool built from a brand identity to help teams create consistent, on-brand video."
 		/>
 		<meta name="theme-color" content="#0b0c0d" />
-		<title>Motion Toolkit — Akshansh</title>
+		<title>Motion Tool — Akshansh</title>
 		<script>
 			(function initApolloInbound() {
 				var TIMEOUT_MS = 15000;
@@ -79,18 +79,18 @@
 					Let’s talk <span aria-hidden="true">↗</span>
 				</a>
 			</header>
-			<floating-page-link
-				href="./Work.html#top"
-				label="Work"
-				accessible-label="Open Work page"
-			></floating-page-link>
-
 			<main>
 				<section class="toolkit-section" id="toolkit" aria-labelledby="page-title">
 					<div class="editor">
 						<div class="editor__preview">
 							<header class="editor-toolbar">
 								<p class="editor-toolbar__label">Live preview</p>
+								<div
+									id="resolution-controls"
+									class="resolution-controls"
+									role="group"
+									aria-label="Output resolution"
+								></div>
 							</header>
 
 							<div class="preview-stage">
@@ -124,26 +124,15 @@
 							</div>
 						</div>
 
-						<aside class="control-centre" aria-label="Announcement controls">
+						<aside class="control-centre" aria-label="Scene controls">
 							<div class="control-centre__content">
-								<p class="section-label">
-									<span>01</span><span aria-hidden="true">/</span> Announcement
-								</p>
-
 								<div class="toolkit-copy">
-									<p class="eyebrow">A scalable system empowers global teams.</p>
-									<h1 id="page-title">Motion Toolkit</h1>
-									<p>
-										As an interactive motion designer, I simplify brand workflows so
-										marketing teams can deliver engaging experiences on a global scale,
-										fast.
-									</p>
-								</div>
-
-								<div class="control-intro">
-									<h3>One motion system. Every campaign phase.</h3>
-									<p>
-										For LedgerLoop, a fictional SaaS finance platform, rebuilding every Black Friday campaign phase from scratch slowed production and weakened consistency. A reusable motion system lets marketing adapt each phase without design software—keeping the campaign fast, flexible, and consistent.
+									<h1 id="page-title">Motion Tool</h1>
+									<p class="toolkit-copy__description">
+										As an interactive motion designer, I help founders get consistent,
+										on-brand video across their whole team, without hiring a motion team
+										or losing quality in a week by building a motion tool from their
+										brand identity.
 									</p>
 								</div>
 
@@ -152,43 +141,7 @@
 								</p>
 
 								<div class="customise-form">
-									<div id="control-center-controls" class="control-center-controls" aria-live="polite">
-										<div class="field">
-											<label for="speaker-name">Title</label>
-											<input id="speaker-name" name="title" type="text" value="Black Friday Is Live!!" autocomplete="off" />
-										</div>
-
-										<div class="field">
-											<label for="call-to-action">Announcement</label>
-											<textarea id="call-to-action" name="announcement" rows="2">Link in the bio</textarea>
-										</div>
-
-										<div class="field toggle-field">
-											<span id="transition-label">Transition from the end</span>
-											<label class="toggle-switch">
-												<input id="transition-from-end" name="transitionFromEnd" type="checkbox" checked aria-labelledby="transition-label" />
-												<span class="toggle-switch__track" aria-hidden="true"></span>
-											</label>
-										</div>
-
-										<fieldset class="field color-field">
-											<legend>Text Color</legend>
-											<div class="color-presets">
-												<label class="color-preset color-preset--red">
-													<input type="radio" name="text-color-index" value="0" />
-													<span class="visually-hidden">Red #ff0013</span>
-												</label>
-												<label class="color-preset color-preset--black">
-													<input type="radio" name="text-color-index" value="1" />
-													<span class="visually-hidden">Black #000000</span>
-												</label>
-												<label class="color-preset color-preset--white">
-													<input type="radio" name="text-color-index" value="2" checked />
-													<span class="visually-hidden">White #ffffff</span>
-												</label>
-											</div>
-										</fieldset>
-									</div>
+									<div id="control-center-controls" class="control-center-controls" aria-live="polite"></div>
 
 									<div class="customise-form__actions">
 										<p class="export-note" id="export-note" role="status" aria-live="polite">MP4 · 1080 × 1350</p>
@@ -201,10 +154,9 @@
 			</main>
 
 			<footer class="site-footer">
-				<div class="site-footer__brand">
-					<p>Motion at Scale</p>
-					<span>Built for beyond the handoff.</span>
-				</div>
+				<a class="contact-link site-footer__work" href="./Work.html#top">
+					Work <span aria-hidden="true">↗</span>
+				</a>
 				<div class="site-footer__links">
 					<nav class="site-footer__socials" aria-label="Social media">
 						<a href="https://www.linkedin.com/in/akshanshmotion/" target="_blank" rel="noopener noreferrer">
@@ -233,7 +185,6 @@
 			}
 			initApollo();
 		</script>
-		<script src="./floating-page-link.js" type="module"></script>
 		<script src="./motion-toolkit.js" type="module"></script>
 	</body>
 </html>

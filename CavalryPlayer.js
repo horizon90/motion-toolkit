@@ -156,6 +156,7 @@ export class CavalryPlayer {
 		} catch (error) {
 			console.error(error)
 			this.showPlayerError(error.message)
+			throw error
 		}
 	}
 
@@ -561,7 +562,28 @@ export class CavalryPlayer {
 				this.player.replaceCSVAsset(filename, assetId)
 				break
 			case 'svg':
-				this.player.replaceSVGAsset(filename, assetId)
+				{
+					const contents = module.FS.readFile(filename)
+					const dataUrl = await new Promise((resolve, reject) => {
+						const reader = new FileReader()
+						reader.onload = () => {
+							if (typeof reader.result !== 'string') {
+								reject(new Error('Failed to encode SVG asset data.'))
+								return
+							}
+							resolve(reader.result)
+						}
+						reader.onerror = () => {
+							reject(reader.error || new Error('Failed to encode SVG asset data.'))
+						}
+						reader.readAsDataURL(
+							new Blob([contents], { type: 'image/svg+xml' }),
+						)
+					})
+					this.player.replaceSVGAssetData(assetId, dataUrl)
+					// The SVG replacement API fetches this data URL asynchronously and returns void.
+					await new Promise((resolve) => setTimeout(resolve, 100))
+				}
 				break
 			case 'excel':
 				this.player.replaceExcelAsset(filename, assetId)
