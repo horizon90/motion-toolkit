@@ -470,13 +470,15 @@ function createSvgUploadControl(scene, player, path) {
 }
 
 function readSvgWidth(svgText) {
-	const documentNode = new DOMParser().parseFromString(svgText, 'image/svg+xml')
-	const svg = documentNode.documentElement
-	if (svg.localName !== 'svg' || documentNode.querySelector('parsererror')) {
+	const root = svgText.match(
+		/^\uFEFF?\s*(?:<\?xml\b[^?]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg\b((?:[^>"']|"[^"]*"|'[^']*')*)>/i,
+	)
+	if (!root) {
 		throw new Error('The selected file is not a valid SVG.')
 	}
 
-	const widthAttribute = svg.getAttribute('width')
+	const widthMatch = root[1].match(/(?:^|\s)width\s*=\s*(?:"([^"]*)"|'([^']*)')/i)
+	const widthAttribute = widthMatch?.[1] ?? widthMatch?.[2]
 	if (widthAttribute) {
 		const match = widthAttribute.trim().match(/^(\d+(?:\.\d+)?)\s*(?:px)?$/i)
 		if (!match) {
@@ -485,7 +487,8 @@ function readSvgWidth(svgText) {
 		return Number(match[1])
 	}
 
-	const viewBox = svg.getAttribute('viewBox')?.trim().split(/[\s,]+/)
+	const viewBoxMatch = root[1].match(/(?:^|\s)viewBox\s*=\s*(?:"([^"]*)"|'([^']*)')/i)
+	const viewBox = (viewBoxMatch?.[1] ?? viewBoxMatch?.[2])?.trim().split(/[\s,]+/)
 	if (viewBox?.length === 4 && Number.isFinite(Number(viewBox[2]))) {
 		return Number(viewBox[2])
 	}
