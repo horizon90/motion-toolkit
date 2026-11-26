@@ -505,6 +505,7 @@ function createSvgUploadControl(scene, player, path, status) {
 	const svgSizeInput = sizeControl.querySelector('input')
 	svgSizeInput.setAttribute('aria-label', 'SVG size adjustment; zero keeps width at 800 pixels')
 	svgSizeInput.setAttribute('aria-valuetext', '800 pixels')
+	svgSizeInput.disabled = true
 	svgSizeInput.addEventListener('input', () => {
 		svgSizeInput.setAttribute(
 			'aria-valuetext',
@@ -512,6 +513,29 @@ function createSvgUploadControl(scene, player, path, status) {
 		)
 	})
 	group.append(uploadLabel, sizeControl)
+	loadDefaultSvg()
+
+	function loadDefaultSvg() {
+		try {
+			const asset = scene.assets?.find((entry) => entry.nodeId === assetId)
+			const filePath = asset?.data?.filePath
+			const filename =
+				typeof filePath === 'string'
+					? filePath.replace(/\\/g, '/').split('/').filter(Boolean).pop()
+					: null
+			if (!filename) {
+				throw new Error('The scene does not have a default SVG asset.')
+			}
+
+			const contents = player.module.FS.readFile(filename)
+			const svgText = new TextDecoder().decode(contents)
+			scaleSvgToWidth(svgText, 800)
+			originalSvgText = svgText
+			svgSizeInput.disabled = false
+		} catch (error) {
+			reportSvgUpdateError(error)
+		}
+	}
 
 	function applySvgWidth(width) {
 		pendingSvgWidth = width
