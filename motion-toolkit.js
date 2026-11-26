@@ -127,15 +127,18 @@ async function initialise() {
 			player.resize()
 		})
 
-		const togglePlayback = () => {
+		playButton.addEventListener('click', () => {
 			player.togglePlayback()
+			if (uiFrameId === null) syncPlaybackUi()
+		})
+
+		player.canvas.addEventListener('click', () => {
+			if (!player.player.isPlaying()) return
+			player.stop()
 			if (uiFrameId !== null) cancelAnimationFrame(uiFrameId)
 			uiFrameId = null
 			syncPlaybackUi()
-		}
-
-		playButton.addEventListener('click', togglePlayback)
-		player.canvas.addEventListener('click', togglePlayback)
+		})
 
 		timeline.addEventListener('click', (event) => {
 			if (event.detail !== 0) return
@@ -311,10 +314,6 @@ function renderControlCentreInputs(
 				? [item.path]
 				: []
 		}) || []
-	const actionsContainer = exportNote.parentElement
-	if (!actionsContainer) {
-		throw new Error('The export status is missing its action container.')
-	}
 	container.replaceChildren()
 
 	let renderedControls = 0
@@ -367,12 +366,7 @@ function renderControlCentreInputs(
 
 		switch (path) {
 			case 'svgShape#4.input':
-				svgUploadControl = createSvgUploadControl(
-					scene,
-					player,
-					path,
-					actionsContainer,
-				)
+				svgUploadControl = createSvgUploadControl(scene, player, path, exportNote)
 				renderedControls += 1
 				break
 			case 'strokeMaterial#126.strokeColor':
@@ -391,7 +385,7 @@ function renderControlCentreInputs(
 				break
 			case 'colorMaterial#114.materialColor':
 				container.appendChild(
-					createColorControl('Canvas colour', value, setValue),
+					createColorControl('Canvas colour', value, setValue, true),
 				)
 				renderedControls += 1
 				break
@@ -403,19 +397,19 @@ function renderControlCentreInputs(
 				break
 			case 'colorMaterial#128.materialColor':
 				getAnchorControls().appendChild(
-					createColorControl('Anchor Point Color', value, setValue),
+					createColorControl('Anchor Point Color', value, setValue, true),
 				)
 				renderedControls += 1
 				break
 			case 'colorMaterial#119.materialColor':
 				getSvgColourControls().appendChild(
-					createColorControl('SVG fill colour', value, setValue),
+					createColorControl('SVG fill colour', value, setValue, true),
 				)
 				renderedControls += 1
 				break
 			case 'strokeMaterial#132.strokeColor':
 				getLineControls().appendChild(
-					createColorControl('Line fill', value, setValue),
+					createColorControl('Line fill', value, setValue, true),
 				)
 				renderedControls += 1
 				break
@@ -452,6 +446,7 @@ function renderControlCentreInputs(
 			}
 			player.resize()
 			exportNote.textContent = `MP4 · ${resolution.width} × ${resolution.height}`
+			exportNote.removeAttribute('aria-invalid')
 		} else if (!player.player.isPlaying()) {
 			player.render()
 		}
@@ -470,13 +465,12 @@ function renderControlCentreInputs(
 	}
 }
 
-function createSvgUploadControl(scene, player, path, statusContainer) {
+function createSvgUploadControl(scene, player, path, status) {
 	const group = document.createElement('div')
 	group.className = 'field svg-upload-control'
 	let originalSvgText = null
-	let svgSourceVersion = 0
-	const baseSvgWidth = 800
-	const svgNodeId = path.split('.')[0]
+	let pendingSvgWidth = null
+	let svgUpdatePromise = null
 	const assetId = getAssetIdForAttribute(scene, path)
 	const uploadLabel = document.createElement('label')
 	uploadLabel.className = 'svg-upload-button'
@@ -489,37 +483,57 @@ function createSvgUploadControl(scene, player, path, statusContainer) {
 	buttonText.textContent = 'Upload SVG'
 	uploadLabel.append(input, createControlIcon('upload'), buttonText)
 
-	const status = document.createElement('p')
-	status.className = 'control-message svg-upload-status'
-	status.setAttribute('role', 'status')
-	status.textContent = ''
 	const sizeControl = createRangeControl(
 		'SVG Size',
-		baseSvgWidth,
-		(width) => {
+		0,
+		(offset) => {
 			if (!originalSvgText) return
-			try {
-				applySvgSize(width)
-				status.removeAttribute('aria-invalid')
-				status.textContent = 'Updated'
-			} catch (error) {
-				reportSvgUpdateError(error)
-			}
+			applySvgWidth(800 + offset).then(
+				() => {
+					status.removeAttribute('aria-invalid')
+					status.textContent = 'SVG resized'
+				},
+				reportSvgUpdateError,
+			)
 		},
+		-400,
 		400,
-		1200,
 		1,
 		0,
 		false,
 	)
 	const svgSizeInput = sizeControl.querySelector('input')
-	svgSizeInput.disabled = true
+	svgSizeInput.setAttribute('aria-label', 'SVG size adjustment; zero keeps width at 800 pixels')
+	svgSizeInput.setAttribute('aria-valuetext', '800 pixels')
+	svgSizeInput.addEventListener('input', () => {
+		svgSizeInput.setAttribute(
+			'aria-valuetext',
+			`${800 + Number(svgSizeInput.value)} pixels`,
+		)
+	})
 	group.append(uploadLabel, sizeControl)
-	statusContainer.prepend(status)
 
-	function applySvgSize(width) {
-		player.player.setAttribute(svgNodeId, 'scale.y', width / baseSvgWidth)
-		if (!player.player.isPlaying()) player.render()
+	function applySvgWidth(width) {
+		pendingSvgWidth = width
+		if (!svgUpdatePromise) {
+			svgUpdatePromise = Promise.resolve().then(async () => {
+				try {
+					while (pendingSvgWidth !== null) {
+						const nextWidth = pendingSvgWidth
+						pendingSvgWidth = null
+						const scaledSvg = scaleSvgToWidth(originalSvgText, nextWidth)
+						const filename = `uploaded-artwork-${Date.now()}-${nextWidth}.svg`
+						const contents = new TextEncoder().encode(scaledSvg)
+						player.module.FS.writeFile(filename, contents)
+						await player.loadAsset({ assetId, filename, type: 'svg' })
+						if (!player.player.isPlaying()) player.render()
+					}
+				} finally {
+					svgUpdatePromise = null
+				}
+			})
+		}
+		return svgUpdatePromise
 	}
 
 	function reportSvgUpdateError(error) {
@@ -532,72 +546,30 @@ function createSvgUploadControl(scene, player, path, statusContainer) {
 	input.addEventListener('change', async () => {
 		const file = input.files?.[0]
 		if (!file) return
-		const sourceVersion = ++svgSourceVersion
 
 		try {
 			if (!file.name.toLowerCase().endsWith('.svg')) {
 				throw new Error('Choose an SVG file.')
 			}
 			const svgText = await file.text()
-			if (sourceVersion !== svgSourceVersion) return
 
 			if (!assetId) {
 				throw new Error('The scene does not expose a replaceable SVG asset.')
 			}
 
-			const scaledSvg = scaleSvgToWidth(svgText, baseSvgWidth)
+			scaleSvgToWidth(svgText, 800)
+			svgSizeInput.value = '0'
+			svgSizeInput.setAttribute('aria-valuetext', '800 pixels')
 			originalSvgText = svgText
-			const filename = `uploaded-artwork-${Date.now()}-${baseSvgWidth}.svg`
-			player.module.FS.writeFile(filename, new TextEncoder().encode(scaledSvg))
-			await player.loadAsset({ assetId, filename, type: 'svg' })
-			if (sourceVersion !== svgSourceVersion) return
-			originalSvgText = svgText
-			svgSizeInput.disabled = false
-			applySvgSize(Number(svgSizeInput.value))
+			await applySvgWidth(800)
 			status.removeAttribute('aria-invalid')
-			status.textContent = 'Updated'
+			status.textContent = 'SVG uploaded'
 			input.value = ''
 		} catch (error) {
 			reportSvgUpdateError(error)
 			input.value = ''
-			if (!originalSvgText) loadInitialSvg()
 		}
 	})
-
-	async function loadInitialSvg() {
-		const sourceVersion = svgSourceVersion
-		const filePath = scene.assets
-			?.find((asset) => asset.nodeId === assetId)
-			?.data?.filePath
-		const filename =
-			typeof filePath === 'string'
-				? filePath.replace(/\\/g, '/').split('/').filter(Boolean).pop()
-				: null
-		if (!filename) {
-			status.textContent = 'Upload an SVG to adjust its size.'
-			return
-		}
-
-		status.textContent = 'Loading SVG…'
-		try {
-			const response = await fetch(filename)
-			if (!response.ok) {
-				throw new Error(`Failed to load the SVG asset (${response.status}).`)
-			}
-			const svgText = await response.text()
-			if (sourceVersion !== svgSourceVersion) return
-			scaleSvgToWidth(svgText, baseSvgWidth)
-			originalSvgText = svgText
-			svgSizeInput.disabled = false
-			applySvgSize(Number(svgSizeInput.value))
-			status.removeAttribute('aria-invalid')
-			status.textContent = 'Ready'
-		} catch (error) {
-			if (sourceVersion === svgSourceVersion) reportSvgUpdateError(error)
-		}
-	}
-
-	loadInitialSvg()
 
 	return group
 }
@@ -609,27 +581,17 @@ function scaleSvgToWidth(svgText, targetWidth) {
 		throw new Error('The selected file is not a valid SVG.')
 	}
 
-	const parseDimension = (value) => {
+	const parsePixelDimension = (value) => {
 		if (!value) return null
-		const match = value
-			.trim()
-			.match(/^(\d+(?:\.\d+)?)\s*(px|in|cm|mm|q|pt|pc)?$/i)
-		if (!match) return null
+		const match = value.trim().match(/^(\d+(?:\.\d+)?)\s*(?:px)?$/i)
+		if (!match) {
+			throw new Error('The SVG dimensions must be declared in pixels.')
+		}
 		const dimension = Number(match[1])
 		if (!Number.isFinite(dimension) || dimension <= 0) {
 			throw new Error('The SVG dimensions must be greater than zero.')
 		}
-		const unit = match[2]?.toLowerCase()
-		const pixelsPerUnit = {
-			px: 1,
-			in: 96,
-			cm: 96 / 2.54,
-			mm: 96 / 25.4,
-			q: 96 / 101.6,
-			pt: 96 / 72,
-			pc: 16,
-		}
-		return dimension * (pixelsPerUnit[unit] || 1)
+		return dimension
 	}
 
 	const viewBox = svg
@@ -642,8 +604,8 @@ function scaleSvgToWidth(svgText, targetWidth) {
 		viewBox.every(Number.isFinite) &&
 		viewBox[2] > 0 &&
 		viewBox[3] > 0
-	let sourceWidth = parseDimension(svg.getAttribute('width'))
-	let sourceHeight = parseDimension(svg.getAttribute('height'))
+	let sourceWidth = parsePixelDimension(svg.getAttribute('width'))
+	let sourceHeight = parsePixelDimension(svg.getAttribute('height'))
 	if (hasValidViewBox) {
 		if (sourceWidth === null) {
 			sourceWidth =
@@ -673,7 +635,7 @@ function getAssetIdForAttribute(scene, path) {
 	return connection?.from?.split('.')[0] || ''
 }
 
-function createColorControl(labelText, value, onChange) {
+function createColorControl(labelText, value, onChange, allowTransparency = false) {
 	let color = normalizeColor(value)
 	const group = document.createElement('div')
 	group.className = 'field color-control'
@@ -718,12 +680,31 @@ function createColorControl(labelText, value, onChange) {
 		color = updated
 		picker.value = `#${hexDigits}`
 		hex.value = `#${hexDigits}`
+		transparentButton?.setAttribute('aria-pressed', 'false')
 		onChange(updated)
 	}
 
 	picker.addEventListener('input', () => updateFromHex(picker.value))
 	hex.addEventListener('change', () => updateFromHex(hex.value))
 	row.append(picker, hex)
+
+	let transparentButton
+	if (allowTransparency) {
+		transparentButton = document.createElement('button')
+		transparentButton.className = 'control-button'
+		transparentButton.type = 'button'
+		transparentButton.append(
+			createControlIcon('transparent'),
+			document.createTextNode('Transparent'),
+		)
+		transparentButton.setAttribute('aria-pressed', String(color.a === 0))
+		transparentButton.addEventListener('click', () => {
+			color = { ...color, a: color.a === 0 ? 255 : 0 }
+			transparentButton.setAttribute('aria-pressed', String(color.a === 0))
+			onChange(color)
+		})
+		row.appendChild(transparentButton)
+	}
 
 	group.append(label, row)
 	return group
@@ -774,6 +755,10 @@ function createControlIcon(name) {
 		],
 		square: [['rect', { x: 5, y: 5, width: 14, height: 14, rx: 1 }]],
 		circle: [['circle', { cx: 12, cy: 12, r: 7 }]],
+		transparent: [
+			['rect', { x: 3, y: 3, width: 18, height: 18, rx: 2 }],
+			['path', { d: 'M12 3v18M3 12h18' }],
+		],
 		'line-width': [['path', { d: 'M4 12h16M7 9l-3 3 3 3m10-6 3 3-3 3' }]],
 		landscape: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 1 }]],
 		squareRatio: [['rect', { x: 5, y: 5, width: 14, height: 14, rx: 1 }]],

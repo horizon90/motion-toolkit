@@ -708,7 +708,12 @@ main {
 	display: grid;
 	grid-template-columns: max-content minmax(0, 1fr);
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
+}
+
+.svg-upload-control .range-control {
+	min-width: 0;
+	grid-column: auto;
 }
 
 .svg-upload-button:focus-within {
@@ -737,14 +742,6 @@ main {
 
 .control-message[aria-invalid='true'] {
 	color: #ff9a9a;
-}
-
-.svg-upload-status {
-	min-width: 0;
-	overflow: hidden;
-	font-size: 10px;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .field__choices {
@@ -934,17 +931,24 @@ main {
 
 .customise-form__actions {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
+	justify-content: flex-end;
 	margin-top: auto;
 }
 
 .export-note {
+	max-width: 100%;
+	min-width: 0;
+	overflow: hidden;
 	margin: 0;
 	color: var(--muted);
 	font-size: 10px;
 	text-align: right;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.export-note[aria-invalid='true'] {
+	color: #ff9a9a;
 }
 
 .site-footer {

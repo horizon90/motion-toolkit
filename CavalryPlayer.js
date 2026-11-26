@@ -755,7 +755,6 @@ export class CavalryPlayer {
 		const {
 			BufferTarget,
 			CanvasSource,
-			canEncodeVideo,
 			getFirstEncodableVideoCodec,
 			Mp4OutputFormat,
 			Output,
@@ -776,11 +775,6 @@ export class CavalryPlayer {
 		) {
 			throw new Error('The scene has an invalid render resolution.')
 		}
-		const canvasColor = this.player.getAttribute(
-			'colorMaterial#114',
-			'materialColor',
-		)
-		const hasTransparentCanvas = Number(canvasColor?.a) < 255
 
 		const wasPlaying = this.player.isPlaying()
 		const originalFrame = Number(this.#timeline.value)
@@ -820,36 +814,15 @@ export class CavalryPlayer {
 			)
 			const quality = new Quality({ bitrate })
 			const format = new Mp4OutputFormat()
-			let codec
-			let videoQuality = quality
-			if (hasTransparentCanvas) {
-				codec = 'prores'
-				const alphaQuality = new Quality('high')
-				const supportsAlphaMp4 = await canEncodeVideo(codec, {
+			const codec = await getFirstEncodableVideoCodec(
+				format.getSupportedVideoCodecs(),
+				{
 					width: resolution.width,
 					height: resolution.height,
 					frameRate: fps,
-					quality: alphaQuality,
-					alpha: 'keep',
-					fullCodecString: 'ap4h',
-				})
-				if (!supportsAlphaMp4) {
-					throw new Error(
-						'Transparent MP4 export requires ProRes 4444 alpha encoding, which this browser does not support.',
-					)
-				}
-				videoQuality = alphaQuality
-			} else {
-				codec = await getFirstEncodableVideoCodec(
-					format.getSupportedVideoCodecs(),
-					{
-						width: resolution.width,
-						height: resolution.height,
-						frameRate: fps,
-						quality,
-					},
-				)
-			}
+					quality,
+				},
+			)
 			if (!codec) {
 				throw new Error('This browser cannot encode MP4 at the scene resolution.')
 			}
@@ -858,11 +831,8 @@ export class CavalryPlayer {
 			output = new Output({ format, target })
 			const videoSource = new CanvasSource(this.canvas, {
 				codec,
-				quality: videoQuality,
+				quality,
 				latencyMode: 'quality',
-				...(hasTransparentCanvas
-					? { alpha: 'keep', fullCodecString: 'ap4h' }
-					: {}),
 			})
 			output.addVideoTrack(videoSource, { frameRate: fps })
 			await output.start()
