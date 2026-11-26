@@ -646,7 +646,7 @@ main {
 
 .color-control__row {
 	display: grid;
-	grid-template-columns: 38px minmax(0, 1fr) auto;
+	grid-template-columns: 38px minmax(0, 1fr);
 	align-items: center;
 	gap: 8px;
 }
@@ -1228,7 +1228,7 @@ main {
 	}
 
 	.color-control__row {
-		grid-template-columns: 32px minmax(0, 1fr) auto;
+		grid-template-columns: 32px minmax(0, 1fr);
 		gap: 5px;
 	}
 
