@@ -474,8 +474,9 @@ function createSvgUploadControl(scene, player, path, statusContainer) {
 	const group = document.createElement('div')
 	group.className = 'field svg-upload-control'
 	let originalSvgText = null
-	let pendingSvgWidth = null
-	let svgUpdatePromise = null
+	let svgSourceVersion = 0
+	const baseSvgWidth = 800
+	const svgNodeId = path.split('.')[0]
 	const assetId = getAssetIdForAttribute(scene, path)
 	const uploadLabel = document.createElement('label')
 	uploadLabel.className = 'svg-upload-button'
@@ -494,16 +495,16 @@ function createSvgUploadControl(scene, player, path, statusContainer) {
 	status.textContent = ''
 	const sizeControl = createRangeControl(
 		'SVG Size',
-		800,
+		baseSvgWidth,
 		(width) => {
 			if (!originalSvgText) return
-			applySvgWidth(width).then(
-				() => {
-					status.removeAttribute('aria-invalid')
-					status.textContent = 'Updated'
-				},
-				reportSvgUpdateError,
-			)
+			try {
+				applySvgSize(width)
+				status.removeAttribute('aria-invalid')
+				status.textContent = 'Updated'
+			} catch (error) {
+				reportSvgUpdateError(error)
+			}
 		},
 		400,
 		1200,
@@ -512,30 +513,13 @@ function createSvgUploadControl(scene, player, path, statusContainer) {
 		false,
 	)
 	const svgSizeInput = sizeControl.querySelector('input')
+	svgSizeInput.disabled = true
 	group.append(uploadLabel, sizeControl)
 	statusContainer.prepend(status)
 
-	function applySvgWidth(width) {
-		pendingSvgWidth = width
-		if (!svgUpdatePromise) {
-			svgUpdatePromise = Promise.resolve().then(async () => {
-				try {
-					while (pendingSvgWidth !== null) {
-						const nextWidth = pendingSvgWidth
-						pendingSvgWidth = null
-						const scaledSvg = scaleSvgToWidth(originalSvgText, nextWidth)
-						const filename = `uploaded-artwork-${Date.now()}-${nextWidth}.svg`
-						const contents = new TextEncoder().encode(scaledSvg)
-						player.module.FS.writeFile(filename, contents)
-						await player.loadAsset({ assetId, filename, type: 'svg' })
-						if (!player.player.isPlaying()) player.render()
-					}
-				} finally {
-					svgUpdatePromise = null
-				}
-			})
-		}
-		return svgUpdatePromise
+	function applySvgSize(width) {
+		player.player.setAttribute(svgNodeId, 'scale.y', width / baseSvgWidth)
+		if (!player.player.isPlaying()) player.render()
 	}
 
 	function reportSvgUpdateError(error) {
@@ -548,28 +532,72 @@ function createSvgUploadControl(scene, player, path, statusContainer) {
 	input.addEventListener('change', async () => {
 		const file = input.files?.[0]
 		if (!file) return
+		const sourceVersion = ++svgSourceVersion
 
 		try {
 			if (!file.name.toLowerCase().endsWith('.svg')) {
 				throw new Error('Choose an SVG file.')
 			}
 			const svgText = await file.text()
+			if (sourceVersion !== svgSourceVersion) return
 
 			if (!assetId) {
 				throw new Error('The scene does not expose a replaceable SVG asset.')
 			}
 
-			scaleSvgToWidth(svgText, Number(svgSizeInput.value))
+			const scaledSvg = scaleSvgToWidth(svgText, baseSvgWidth)
 			originalSvgText = svgText
-			await applySvgWidth(Number(svgSizeInput.value))
+			const filename = `uploaded-artwork-${Date.now()}-${baseSvgWidth}.svg`
+			player.module.FS.writeFile(filename, new TextEncoder().encode(scaledSvg))
+			await player.loadAsset({ assetId, filename, type: 'svg' })
+			if (sourceVersion !== svgSourceVersion) return
+			originalSvgText = svgText
+			svgSizeInput.disabled = false
+			applySvgSize(Number(svgSizeInput.value))
 			status.removeAttribute('aria-invalid')
 			status.textContent = 'Updated'
 			input.value = ''
 		} catch (error) {
 			reportSvgUpdateError(error)
 			input.value = ''
+			if (!originalSvgText) loadInitialSvg()
 		}
 	})
+
+	async function loadInitialSvg() {
+		const sourceVersion = svgSourceVersion
+		const filePath = scene.assets
+			?.find((asset) => asset.nodeId === assetId)
+			?.data?.filePath
+		const filename =
+			typeof filePath === 'string'
+				? filePath.replace(/\\/g, '/').split('/').filter(Boolean).pop()
+				: null
+		if (!filename) {
+			status.textContent = 'Upload an SVG to adjust its size.'
+			return
+		}
+
+		status.textContent = 'Loading SVG…'
+		try {
+			const response = await fetch(filename)
+			if (!response.ok) {
+				throw new Error(`Failed to load the SVG asset (${response.status}).`)
+			}
+			const svgText = await response.text()
+			if (sourceVersion !== svgSourceVersion) return
+			scaleSvgToWidth(svgText, baseSvgWidth)
+			originalSvgText = svgText
+			svgSizeInput.disabled = false
+			applySvgSize(Number(svgSizeInput.value))
+			status.removeAttribute('aria-invalid')
+			status.textContent = 'Ready'
+		} catch (error) {
+			if (sourceVersion === svgSourceVersion) reportSvgUpdateError(error)
+		}
+	}
+
+	loadInitialSvg()
 
 	return group
 }
@@ -581,17 +609,27 @@ function scaleSvgToWidth(svgText, targetWidth) {
 		throw new Error('The selected file is not a valid SVG.')
 	}
 
-	const parsePixelDimension = (value) => {
+	const parseDimension = (value) => {
 		if (!value) return null
-		const match = value.trim().match(/^(\d+(?:\.\d+)?)\s*(?:px)?$/i)
-		if (!match) {
-			throw new Error('The SVG dimensions must be declared in pixels.')
-		}
+		const match = value
+			.trim()
+			.match(/^(\d+(?:\.\d+)?)\s*(px|in|cm|mm|q|pt|pc)?$/i)
+		if (!match) return null
 		const dimension = Number(match[1])
 		if (!Number.isFinite(dimension) || dimension <= 0) {
 			throw new Error('The SVG dimensions must be greater than zero.')
 		}
-		return dimension
+		const unit = match[2]?.toLowerCase()
+		const pixelsPerUnit = {
+			px: 1,
+			in: 96,
+			cm: 96 / 2.54,
+			mm: 96 / 25.4,
+			q: 96 / 101.6,
+			pt: 96 / 72,
+			pc: 16,
+		}
+		return dimension * (pixelsPerUnit[unit] || 1)
 	}
 
 	const viewBox = svg
@@ -604,8 +642,8 @@ function scaleSvgToWidth(svgText, targetWidth) {
 		viewBox.every(Number.isFinite) &&
 		viewBox[2] > 0 &&
 		viewBox[3] > 0
-	let sourceWidth = parsePixelDimension(svg.getAttribute('width'))
-	let sourceHeight = parsePixelDimension(svg.getAttribute('height'))
+	let sourceWidth = parseDimension(svg.getAttribute('width'))
+	let sourceHeight = parseDimension(svg.getAttribute('height'))
 	if (hasValidViewBox) {
 		if (sourceWidth === null) {
 			sourceWidth =
