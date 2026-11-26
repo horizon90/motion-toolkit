@@ -388,6 +388,13 @@ main {
 	overflow: visible;
 	border-radius: 3px;
 	background: #424347;
+	cursor: pointer;
+	touch-action: none;
+}
+
+.playback__timeline:focus-visible {
+	outline: 2px solid var(--lavender);
+	outline-offset: 7px;
 }
 
 .playback__progress {
@@ -538,6 +545,10 @@ main {
 	grid-template-columns: max-content minmax(0, 1fr) 44px;
 	align-items: center;
 	gap: 10px;
+}
+
+.range-control.range-control--no-value {
+	grid-template-columns: max-content minmax(0, 1fr);
 }
 
 .range-control > label {
@@ -697,11 +708,7 @@ main {
 	display: grid;
 	grid-template-columns: max-content minmax(0, 1fr);
 	align-items: center;
-	gap: 12px;
-}
-
-.svg-upload-control .control-message {
-	min-width: 0;
+	gap: 10px;
 }
 
 .svg-upload-button:focus-within {
@@ -730,6 +737,14 @@ main {
 
 .control-message[aria-invalid='true'] {
 	color: #ff9a9a;
+}
+
+.svg-upload-status {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 10px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .field__choices {
@@ -919,7 +934,9 @@ main {
 
 .customise-form__actions {
 	display: flex;
-	justify-content: flex-end;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
 	margin-top: auto;
 }
 
@@ -1246,10 +1263,6 @@ main {
 
 	.svg-upload-control {
 		gap: 8px;
-	}
-
-	.svg-upload-control .control-message {
-		font-size: 10px;
 	}
 
 	.customise-form__actions {

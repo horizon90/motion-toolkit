@@ -36,6 +36,8 @@ async function initialise() {
 	let player
 	let uiFrameId = null
 	let isSeeking = false
+	let scrubPointerId = null
+	let wasPlayingBeforeScrub = false
 	const fitPreview = (resolution) => {
 		const playerContainer = playerMount.querySelector('.player-container')
 		if (!playerContainer || resolution.width <= 0 || resolution.height <= 0) return
@@ -125,16 +127,53 @@ async function initialise() {
 			player.resize()
 		})
 
-		playButton.addEventListener('click', () => {
+		const togglePlayback = () => {
 			player.togglePlayback()
-			if (uiFrameId === null) syncPlaybackUi()
-		})
+			if (uiFrameId !== null) cancelAnimationFrame(uiFrameId)
+			uiFrameId = null
+			syncPlaybackUi()
+		}
+
+		playButton.addEventListener('click', togglePlayback)
+		player.canvas.addEventListener('click', togglePlayback)
 
 		timeline.addEventListener('click', (event) => {
+			if (event.detail !== 0) return
 			const bounds = timeline.getBoundingClientRect()
 			const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
 			seekToRatio(ratio)
 		})
+
+		timeline.addEventListener('pointerdown', (event) => {
+			if (!event.isPrimary || event.button !== 0) return
+
+			event.preventDefault()
+			scrubPointerId = event.pointerId
+			wasPlayingBeforeScrub = player.player.isPlaying()
+			isSeeking = true
+			if (uiFrameId !== null) cancelAnimationFrame(uiFrameId)
+			uiFrameId = null
+			if (wasPlayingBeforeScrub) player.stop()
+			timeline.setPointerCapture(event.pointerId)
+			scrubToPosition(event.clientX)
+		})
+
+		timeline.addEventListener('pointermove', (event) => {
+			if (event.pointerId === scrubPointerId) scrubToPosition(event.clientX)
+		})
+
+		const finishScrubbing = (event) => {
+			if (event.pointerId !== scrubPointerId) return
+
+			scrubPointerId = null
+			isSeeking = false
+			if (wasPlayingBeforeScrub) player.play()
+			wasPlayingBeforeScrub = false
+			syncPlaybackUi()
+		}
+
+		timeline.addEventListener('pointerup', finishScrubbing)
+		timeline.addEventListener('pointercancel', finishScrubbing)
 
 		timeline.addEventListener('keydown', (event) => {
 			const scene = player.player
@@ -176,6 +215,18 @@ async function initialise() {
 			const startFrame = scene.getStartFrame()
 			const endFrame = scene.getEndFrame()
 			seekToFrame(Math.round(startFrame + ratio * (endFrame - startFrame)))
+		}
+
+		function scrubToPosition(clientX) {
+			const bounds = timeline.getBoundingClientRect()
+			if (bounds.width <= 0) return
+			const ratio = Math.max(0, Math.min(1, (clientX - bounds.left) / bounds.width))
+			const scene = player.player
+			const startFrame = scene.getStartFrame()
+			const endFrame = scene.getEndFrame()
+			scene.setFrame(Math.round(startFrame + ratio * (endFrame - startFrame)))
+			player.render()
+			syncPlaybackUi()
 		}
 
 		function seekToFrame(frame) {
@@ -260,6 +311,10 @@ function renderControlCentreInputs(
 				? [item.path]
 				: []
 		}) || []
+	const actionsContainer = exportNote.parentElement
+	if (!actionsContainer) {
+		throw new Error('The export status is missing its action container.')
+	}
 	container.replaceChildren()
 
 	let renderedControls = 0
@@ -312,7 +367,12 @@ function renderControlCentreInputs(
 
 		switch (path) {
 			case 'svgShape#4.input':
-				svgUploadControl = createSvgUploadControl(scene, player, path)
+				svgUploadControl = createSvgUploadControl(
+					scene,
+					player,
+					path,
+					actionsContainer,
+				)
 				renderedControls += 1
 				break
 			case 'strokeMaterial#126.strokeColor':
@@ -410,9 +470,13 @@ function renderControlCentreInputs(
 	}
 }
 
-function createSvgUploadControl(scene, player, path) {
+function createSvgUploadControl(scene, player, path, statusContainer) {
 	const group = document.createElement('div')
 	group.className = 'field svg-upload-control'
+	let originalSvgText = null
+	let pendingSvgWidth = null
+	let svgUpdatePromise = null
+	const assetId = getAssetIdForAttribute(scene, path)
 	const uploadLabel = document.createElement('label')
 	uploadLabel.className = 'svg-upload-button'
 	const input = document.createElement('input')
@@ -425,10 +489,61 @@ function createSvgUploadControl(scene, player, path) {
 	uploadLabel.append(input, createControlIcon('upload'), buttonText)
 
 	const status = document.createElement('p')
-	status.className = 'control-message'
+	status.className = 'control-message svg-upload-status'
 	status.setAttribute('role', 'status')
-	status.textContent = 'SVG width must be 800px (±10px).'
-	group.append(uploadLabel, status)
+	status.textContent = ''
+	const sizeControl = createRangeControl(
+		'SVG Size',
+		800,
+		(width) => {
+			if (!originalSvgText) return
+			applySvgWidth(width).then(
+				() => {
+					status.removeAttribute('aria-invalid')
+					status.textContent = 'Updated'
+				},
+				reportSvgUpdateError,
+			)
+		},
+		400,
+		1200,
+		1,
+		0,
+		false,
+	)
+	const svgSizeInput = sizeControl.querySelector('input')
+	group.append(uploadLabel, sizeControl)
+	statusContainer.prepend(status)
+
+	function applySvgWidth(width) {
+		pendingSvgWidth = width
+		if (!svgUpdatePromise) {
+			svgUpdatePromise = Promise.resolve().then(async () => {
+				try {
+					while (pendingSvgWidth !== null) {
+						const nextWidth = pendingSvgWidth
+						pendingSvgWidth = null
+						const scaledSvg = scaleSvgToWidth(originalSvgText, nextWidth)
+						const filename = `uploaded-artwork-${Date.now()}-${nextWidth}.svg`
+						const contents = new TextEncoder().encode(scaledSvg)
+						player.module.FS.writeFile(filename, contents)
+						await player.loadAsset({ assetId, filename, type: 'svg' })
+						if (!player.player.isPlaying()) player.render()
+					}
+				} finally {
+					svgUpdatePromise = null
+				}
+			})
+		}
+		return svgUpdatePromise
+	}
+
+	function reportSvgUpdateError(error) {
+		console.error('[Motion Toolkit] SVG resize failed:', error)
+		status.setAttribute('aria-invalid', 'true')
+		status.textContent =
+			error instanceof Error ? error.message : 'Unable to resize this SVG.'
+	}
 
 	input.addEventListener('change', async () => {
 		const file = input.files?.[0]
@@ -439,29 +554,19 @@ function createSvgUploadControl(scene, player, path) {
 				throw new Error('Choose an SVG file.')
 			}
 			const svgText = await file.text()
-			const width = readSvgWidth(svgText)
-			if (width < 790 || width > 810) {
-				throw new Error(`SVG width must be between 790px and 810px; this file is ${width}px wide.`)
-			}
 
-			const assetId = getAssetIdForAttribute(scene, path)
 			if (!assetId) {
 				throw new Error('The scene does not expose a replaceable SVG asset.')
 			}
 
-			const filename = `uploaded-artwork-${Date.now()}.svg`
-			const contents = new Uint8Array(await file.arrayBuffer())
-			player.module.FS.writeFile(filename, contents)
-			await player.loadAsset({ assetId, filename, type: 'svg' })
-			if (!player.player.isPlaying()) player.render()
+			scaleSvgToWidth(svgText, Number(svgSizeInput.value))
+			originalSvgText = svgText
+			await applySvgWidth(Number(svgSizeInput.value))
 			status.removeAttribute('aria-invalid')
-			status.textContent = `${file.name} uploaded (${width}px wide).`
+			status.textContent = 'Updated'
 			input.value = ''
 		} catch (error) {
-			console.error('[Motion Toolkit] SVG upload failed:', error)
-			status.setAttribute('aria-invalid', 'true')
-			status.textContent =
-				error instanceof Error ? error.message : 'Unable to upload this SVG.'
+			reportSvgUpdateError(error)
 			input.value = ''
 		}
 	})
@@ -469,30 +574,60 @@ function createSvgUploadControl(scene, player, path) {
 	return group
 }
 
-function readSvgWidth(svgText) {
-	const root = svgText.match(
-		/^\uFEFF?\s*(?:<\?xml\b[^?]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg\b((?:[^>"']|"[^"]*"|'[^']*')*)>/i,
-	)
-	if (!root) {
+function scaleSvgToWidth(svgText, targetWidth) {
+	const svgDocument = new DOMParser().parseFromString(svgText, 'image/svg+xml')
+	const svg = svgDocument.documentElement
+	if (svg.localName !== 'svg' || svgDocument.querySelector('parsererror')) {
 		throw new Error('The selected file is not a valid SVG.')
 	}
 
-	const widthMatch = root[1].match(/(?:^|\s)width\s*=\s*(?:"([^"]*)"|'([^']*)')/i)
-	const widthAttribute = widthMatch?.[1] ?? widthMatch?.[2]
-	if (widthAttribute) {
-		const match = widthAttribute.trim().match(/^(\d+(?:\.\d+)?)\s*(?:px)?$/i)
+	const parsePixelDimension = (value) => {
+		if (!value) return null
+		const match = value.trim().match(/^(\d+(?:\.\d+)?)\s*(?:px)?$/i)
 		if (!match) {
-			throw new Error('The SVG must declare its width in pixels.')
+			throw new Error('The SVG dimensions must be declared in pixels.')
 		}
-		return Number(match[1])
+		const dimension = Number(match[1])
+		if (!Number.isFinite(dimension) || dimension <= 0) {
+			throw new Error('The SVG dimensions must be greater than zero.')
+		}
+		return dimension
 	}
 
-	const viewBoxMatch = root[1].match(/(?:^|\s)viewBox\s*=\s*(?:"([^"]*)"|'([^']*)')/i)
-	const viewBox = (viewBoxMatch?.[1] ?? viewBoxMatch?.[2])?.trim().split(/[\s,]+/)
-	if (viewBox?.length === 4 && Number.isFinite(Number(viewBox[2]))) {
-		return Number(viewBox[2])
+	const viewBox = svg
+		.getAttribute('viewBox')
+		?.trim()
+		.split(/[\s,]+/)
+		.map(Number)
+	const hasValidViewBox =
+		viewBox?.length === 4 &&
+		viewBox.every(Number.isFinite) &&
+		viewBox[2] > 0 &&
+		viewBox[3] > 0
+	let sourceWidth = parsePixelDimension(svg.getAttribute('width'))
+	let sourceHeight = parsePixelDimension(svg.getAttribute('height'))
+	if (hasValidViewBox) {
+		if (sourceWidth === null) {
+			sourceWidth =
+				sourceHeight === null
+					? viewBox[2]
+					: (sourceHeight * viewBox[2]) / viewBox[3]
+		}
+		if (sourceHeight === null) {
+			sourceHeight =
+				sourceWidth === null
+					? viewBox[3]
+					: (sourceWidth * viewBox[3]) / viewBox[2]
+		}
 	}
-	throw new Error('The SVG needs a pixel width or a valid viewBox width.')
+
+	if (sourceWidth === null || sourceHeight === null) {
+		throw new Error('The SVG needs pixel dimensions or a valid viewBox to preserve its proportions.')
+	}
+
+	svg.setAttribute('width', `${targetWidth}px`)
+	svg.setAttribute('height', `${(sourceHeight * targetWidth) / sourceWidth}px`)
+	return new XMLSerializer().serializeToString(svgDocument)
 }
 
 function getAssetIdForAttribute(scene, path) {
@@ -502,6 +637,9 @@ function getAssetIdForAttribute(scene, path) {
 
 function createColorControl(labelText, value, onChange, allowTransparency = false) {
 	let color = normalizeColor(value)
+	let opaqueAlpha = color.a === 0 ? 255 : color.a
+	let transparentButton
+	let transparentButtonLabel
 	const group = document.createElement('div')
 	group.className = 'field color-control'
 	group.setAttribute('role', 'group')
@@ -543,9 +681,10 @@ function createColorControl(labelText, value, onChange, allowTransparency = fals
 			a: 255,
 		}
 		color = updated
+		opaqueAlpha = updated.a
 		picker.value = `#${hexDigits}`
 		hex.value = `#${hexDigits}`
-		transparentButton?.setAttribute('aria-pressed', 'false')
+		updateTransparencyButton()
 		onChange(updated)
 	}
 
@@ -553,19 +692,32 @@ function createColorControl(labelText, value, onChange, allowTransparency = fals
 	hex.addEventListener('change', () => updateFromHex(hex.value))
 	row.append(picker, hex)
 
-	let transparentButton
+	function updateTransparencyButton() {
+		if (!transparentButton) return
+		const isTransparent = color.a === 0
+		transparentButton.setAttribute('aria-pressed', String(isTransparent))
+		transparentButton.setAttribute(
+			'aria-label',
+			isTransparent ? 'Make opaque' : 'Make transparent',
+		)
+		transparentButtonLabel.textContent = isTransparent ? 'Opaque' : 'Transparent'
+	}
+
 	if (allowTransparency) {
 		transparentButton = document.createElement('button')
 		transparentButton.className = 'control-button'
 		transparentButton.type = 'button'
-		transparentButton.append(
-			createControlIcon('transparent'),
-			document.createTextNode('Transparent'),
-		)
-		transparentButton.setAttribute('aria-pressed', String(color.a === 0))
+		transparentButtonLabel = document.createElement('span')
+		transparentButton.append(createControlIcon('transparent'), transparentButtonLabel)
+		updateTransparencyButton()
 		transparentButton.addEventListener('click', () => {
-			color = { ...color, a: 0 }
-			transparentButton.setAttribute('aria-pressed', 'true')
+			if (color.a === 0) {
+				color = { ...color, a: opaqueAlpha }
+			} else {
+				opaqueAlpha = color.a
+				color = { ...color, a: 0 }
+			}
+			updateTransparencyButton()
 			onChange(color)
 		})
 		row.appendChild(transparentButton)
@@ -731,9 +883,11 @@ function createRangeControl(
 	max,
 	step,
 	decimals,
+	showValue = true,
 ) {
 	const group = document.createElement('div')
 	group.className = 'field range-control'
+	if (!showValue) group.classList.add('range-control--no-value')
 	const label = document.createElement('label')
 	label.append(
 		createControlIcon(getControlIconName(labelText)),
@@ -746,15 +900,18 @@ function createRangeControl(
 	input.step = String(step)
 	input.value = String(Math.max(min, Math.min(max, value)))
 	input.setAttribute('aria-label', labelText)
-	const output = document.createElement('output')
-	output.className = 'field__value'
-	output.textContent = Number(input.value).toFixed(decimals)
+	const output = showValue ? document.createElement('output') : null
+	if (output) {
+		output.className = 'field__value'
+		output.textContent = Number(input.value).toFixed(decimals)
+	}
 	input.addEventListener('input', () => {
 		const numericValue = Number(input.value)
-		output.textContent = numericValue.toFixed(decimals)
+		if (output) output.textContent = numericValue.toFixed(decimals)
 		onChange(numericValue)
 	})
-	group.append(label, input, output)
+	group.append(label, input)
+	if (output) group.appendChild(output)
 	return group
 }
 
