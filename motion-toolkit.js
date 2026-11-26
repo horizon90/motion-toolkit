@@ -391,7 +391,7 @@ function renderControlCentreInputs(
 				break
 			case 'colorMaterial#114.materialColor':
 				container.appendChild(
-					createColorControl('Canvas colour', value, setValue, true),
+					createColorControl('Canvas colour', value, setValue),
 				)
 				renderedControls += 1
 				break
@@ -403,19 +403,19 @@ function renderControlCentreInputs(
 				break
 			case 'colorMaterial#128.materialColor':
 				getAnchorControls().appendChild(
-					createColorControl('Anchor Point Color', value, setValue, true),
+					createColorControl('Anchor Point Color', value, setValue),
 				)
 				renderedControls += 1
 				break
 			case 'colorMaterial#119.materialColor':
 				getSvgColourControls().appendChild(
-					createColorControl('SVG fill colour', value, setValue, true),
+					createColorControl('SVG fill colour', value, setValue),
 				)
 				renderedControls += 1
 				break
 			case 'strokeMaterial#132.strokeColor':
 				getLineControls().appendChild(
-					createColorControl('Line fill', value, setValue, true),
+					createColorControl('Line fill', value, setValue),
 				)
 				renderedControls += 1
 				break
@@ -635,11 +635,8 @@ function getAssetIdForAttribute(scene, path) {
 	return connection?.from?.split('.')[0] || ''
 }
 
-function createColorControl(labelText, value, onChange, allowTransparency = false) {
+function createColorControl(labelText, value, onChange) {
 	let color = normalizeColor(value)
-	let opaqueAlpha = color.a === 0 ? 255 : color.a
-	let transparentButton
-	let transparentButtonLabel
 	const group = document.createElement('div')
 	group.className = 'field color-control'
 	group.setAttribute('role', 'group')
@@ -681,47 +678,14 @@ function createColorControl(labelText, value, onChange, allowTransparency = fals
 			a: 255,
 		}
 		color = updated
-		opaqueAlpha = updated.a
 		picker.value = `#${hexDigits}`
 		hex.value = `#${hexDigits}`
-		updateTransparencyButton()
 		onChange(updated)
 	}
 
 	picker.addEventListener('input', () => updateFromHex(picker.value))
 	hex.addEventListener('change', () => updateFromHex(hex.value))
 	row.append(picker, hex)
-
-	function updateTransparencyButton() {
-		if (!transparentButton) return
-		const isTransparent = color.a === 0
-		transparentButton.setAttribute('aria-pressed', String(isTransparent))
-		transparentButton.setAttribute(
-			'aria-label',
-			isTransparent ? 'Make opaque' : 'Make transparent',
-		)
-		transparentButtonLabel.textContent = isTransparent ? 'Opaque' : 'Transparent'
-	}
-
-	if (allowTransparency) {
-		transparentButton = document.createElement('button')
-		transparentButton.className = 'control-button'
-		transparentButton.type = 'button'
-		transparentButtonLabel = document.createElement('span')
-		transparentButton.append(createControlIcon('transparent'), transparentButtonLabel)
-		updateTransparencyButton()
-		transparentButton.addEventListener('click', () => {
-			if (color.a === 0) {
-				color = { ...color, a: opaqueAlpha }
-			} else {
-				opaqueAlpha = color.a
-				color = { ...color, a: 0 }
-			}
-			updateTransparencyButton()
-			onChange(color)
-		})
-		row.appendChild(transparentButton)
-	}
 
 	group.append(label, row)
 	return group
@@ -772,10 +736,6 @@ function createControlIcon(name) {
 		],
 		square: [['rect', { x: 5, y: 5, width: 14, height: 14, rx: 1 }]],
 		circle: [['circle', { cx: 12, cy: 12, r: 7 }]],
-		transparent: [
-			['rect', { x: 3, y: 3, width: 18, height: 18, rx: 2 }],
-			['path', { d: 'M12 3v18M3 12h18' }],
-		],
 		'line-width': [['path', { d: 'M4 12h16M7 9l-3 3 3 3m10-6 3 3-3 3' }]],
 		landscape: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 1 }]],
 		squareRatio: [['rect', { x: 5, y: 5, width: 14, height: 14, rx: 1 }]],
